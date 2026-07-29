@@ -3,3 +3,4 @@ bip32
 mnemonic
 coincurve
 ecdsa
+python-dotenv
