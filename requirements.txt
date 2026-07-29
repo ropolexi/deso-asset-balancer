@@ -1,0 +1,5 @@
+requests
+bip32
+mnemonic
+coincurve
+ecdsa
