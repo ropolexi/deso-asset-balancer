@@ -1,13 +1,17 @@
 from deso_sdk import DeSoDexClient,base58_check_encode
 import time
+import os
+from dotenv import load_dotenv
 
 deso_pubkey="DESO"
 focus_pubkey="BC1YLjEayZDjAPitJJX4Boy7LsEfN3sWAkYb3hgE9kGBirztsc2re1N"
 openfund_pubkey="BC1YLj3zNA7hRAqBVkvsTeqw7oi4H6ogKiAFL1VXhZy6pYeZcZ6TDRY"
 usdc_pubkey="BC1YLiwTN3DbkU8VmD7F7wXcRR1tFX6jDEkLyruHD2WsH3URomimxLX"
 
-deso = DeSoDexClient(is_testnet=False,seed_phrase_or_hex="",node_url="https://node.deso.org")
+load_dotenv()
 
+deso_seed = os.getenv("DESO_SEED")
+deso = DeSoDexClient(is_testnet=False,seed_phrase_or_hex=deso_seed,node_url="https://node.deso.org")
 user_public_key=base58_check_encode(deso.deso_keypair.public_key, False)
 
 def get_exchange_rate(data,quote_currency,base_currency_selected):    
