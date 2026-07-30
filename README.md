@@ -64,6 +64,11 @@ Create a `.env` file:
 ```env
 DESO_SEED=your_deso_seed
 UPDATE_INTERVAL=600
+NODE="https://node.deso.org"
+
+DESO_PERCENTAGE=20
+FOCUS_PERCENTAGE=10
+OPENFUND_PERCENTAGE=10
 ```
 
 ## Usage
