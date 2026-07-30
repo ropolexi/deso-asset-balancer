@@ -19,7 +19,7 @@ node=os.getenv("NODE")
 deso_perc=int(os.getenv("DESO_PERCENTAGE"))
 focus_perc=int(os.getenv("FOCUS_PERCENTAGE"))
 openfund_perc=int(os.getenv("OPENFUND_PERCENTAGE"))
-
+delta=0.02
 deso = DeSoDexClient(is_testnet=False,seed_phrase_or_hex=deso_seed,node_url=node)
 user_public_key=base58_check_encode(deso.deso_keypair.public_key, False)
 
@@ -37,9 +37,9 @@ def get_exchange_rate(data,quote_currency,base_currency_selected):
     asks = asks_1+asks_2
 
     best_bid_price, best_bid_quantity,best_bid_trasactor = max(bids)
-    print(f"best_bid_price:{best_bid_price}")
+    
     best_ask_price, best_ask_quantity,best_ask_trasactor = min(asks)
-    print(f"best_ask_price:{best_ask_price}")
+    print(f"best_bid_price:{best_bid_price},best_ask_price:{best_ask_price}")
 
     return (float(best_bid_price)+float(best_ask_price))/2
 
@@ -114,39 +114,47 @@ while True:
     print("Calculating OPENFUND/DESO market price")
     openfund_exchange_rate = get_exchange_rate(data,quote_currency,base_currency_selected)
     
+    print("\nExchange RATES")
+    print("="*30)
+    print(f"deso_exchange_rate:\t{deso_exchange_rate}")
+    print(f"focus_exchange_rate:\t{focus_exchange_rate}")
+    print(f"openfund_exchange_rate:\t{openfund_exchange_rate}")
+    print("="*30)
+
     #get user balance
-    print("Updating user balance...")
+    print("\nUpdating user balance...")
     usdc_coins,deso_balance_usd,focus_balance_usd,openfund_balance_usd = get_user_balance(deso_exchange_rate,focus_exchange_rate,openfund_exchange_rate)
     
-    print("\nExchange RATES")
-    print(f"deso_exchange_rate:{deso_exchange_rate}")
-    print(f"focus_exchange_rate:{focus_exchange_rate}")
-    print(f"openfund_exchange_rate:{openfund_exchange_rate}")
-    
     print("\nUSER WALLET BALANCE")
-    print(f"deso_balance_usd:${deso_balance_usd}")
-    print(f"usd balance:${usdc_coins}")
-    print(f"focus_balance_usd:${focus_balance_usd}")
-    print(f"openfund_balance_usd:${openfund_balance_usd}")
-    print("*"*30)
+    print("="*30)
+    print(f"deso_balance_usd:\t${deso_balance_usd:.2f}")
+    print(f"usd balance:\t\t${usdc_coins:.2f}")
+    print(f"focus_balance_usd:\t${focus_balance_usd:.2f}")
+    print(f"openfund_balance_usd:\t${openfund_balance_usd:.2f}")
+    
     total_balance = deso_balance_usd + usdc_coins + focus_balance_usd+openfund_balance_usd
-    print(f"total_balance:${total_balance}")
-    balance_per_asset = total_balance/4
+    print("="*30)
+    print(f"\nTotal_balance:${total_balance:.2f}")
+    print("="*30)
+    #balance_per_asset = total_balance/4
     deso_target_balance = total_balance * deso_perc /100
     focus_target_balance = total_balance * focus_perc/100
     openfund_target_balance = total_balance * openfund_perc/100
 
-    print(f"balance_per_asset:${balance_per_asset}")
+    print(f"deso_target \t\t- {deso_perc}% : ${deso_target_balance:.2f}")
+    print(f"focus_target \t\t- {focus_perc}% : ${focus_target_balance:.2f}")
+    print(f"openfund_target \t- {openfund_perc}% : ${openfund_target_balance:.2f}")
+    
     print("*"*30)
 
-    if openfund_balance_usd>openfund_target_balance+0.01:
+    if openfund_balance_usd>openfund_target_balance+delta:
         sell_amount=round(openfund_balance_usd-openfund_target_balance,2)/deso_exchange_rate
         print(f"Selling openfund:${sell_amount}")
         if place_limit_order(user_public_key,"ASK", openfund_pubkey, deso_pubkey, 0, sell_amount):
             openfund_balance_usd = openfund_balance_usd - sell_amount
             deso_balance_usd = deso_balance_usd + sell_amount
         
-    if openfund_balance_usd<openfund_target_balance-0.01:
+    if openfund_balance_usd<openfund_target_balance-delta:
         if deso_balance_usd<round(openfund_target_balance-openfund_balance_usd,2):# deso balance low
             if(usdc_coins>round(openfund_target_balance-openfund_balance_usd,2)):#buy from usdc
                 buy_amount = round(openfund_target_balance-openfund_balance_usd,2) 
@@ -161,14 +169,14 @@ while True:
                 openfund_balance_usd = openfund_balance_usd + buy_amount
                 deso_balance_usd = deso_balance_usd - buy_amount
 
-    if focus_balance_usd>focus_target_balance+0.01:
+    if focus_balance_usd>focus_target_balance+delta:
         sell_amount=round(focus_balance_usd-focus_target_balance,2)/deso_exchange_rate
         print(f"Selling focus:${sell_amount}")
         if place_limit_order(user_public_key,"ASK", focus_pubkey, deso_pubkey, 0, sell_amount):
             focus_balance_usd = focus_balance_usd - sell_amount
             deso_balance_usd = deso_balance_usd + sell_amount
         
-    if focus_balance_usd<focus_target_balance-0.01:
+    if focus_balance_usd<focus_target_balance-delta:
         if deso_balance_usd<round(focus_target_balance-focus_balance_usd,2):#buy deso
             if(usdc_coins>round(focus_target_balance-focus_balance_usd,2)):#buy from usdc
                 buy_amount = round(focus_target_balance-focus_balance_usd,2) 
@@ -183,21 +191,21 @@ while True:
                 focus_balance_usd = focus_balance_usd + buy_amount
                 deso_balance_usd = deso_balance_usd - buy_amount
              
-    if deso_balance_usd>deso_target_balance+0.01:
+    if deso_balance_usd>deso_target_balance+delta:
         sell_amount=round(deso_balance_usd-deso_target_balance,2)
         print(f"Selling deso:${sell_amount}")
         if place_limit_order(user_public_key,"ASK", deso_pubkey, usdc_pubkey, 0, sell_amount):
                 deso_balance_usd = deso_balance_usd - sell_amount
                 usdc_coins = usdc_coins + sell_amount
 
-    if deso_balance_usd<deso_target_balance-0.01:
+    if deso_balance_usd<deso_target_balance-delta:
         buy_amount = round(deso_target_balance-deso_balance_usd,2) 
         print(f"Buying deso:${buy_amount}")
         if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, 0, buy_amount):
                 deso_balance_usd = deso_balance_usd + buy_amount
                 usdc_coins = usdc_coins - buy_amount
 
-    print(f"usd:${usdc_coins},deso:${deso_balance_usd},focus:${focus_balance_usd},openfund:${openfund_balance_usd}")
+    print(f"usd:${usdc_coins:.2f},deso:${deso_balance_usd:.2f},focus:${focus_balance_usd:.2f},openfund:${openfund_balance_usd:.2f}")
     
     print(f"sleep {update_interval} seconds")
     time.sleep(update_interval)
