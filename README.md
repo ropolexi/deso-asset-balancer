@@ -1,10 +1,10 @@
 # DeSo Asset Balancer
 
-A Python application that automatically balances a portfolio across **DeSo (DESO)**, **USDC**, and **FOCUS** .
+A Python application that automatically balances a portfolio across **DeSo (DESO)**, **USDC**, **FOCUS** and **OPENFUND**.
 
 ## Features
 
-* Balance holdings between DESO, USDC, and FOCUS
+* Balance holdings between DESO, USDC, FOCUS and OPENFUND
 * Calculate required buy/sell amounts
 
 ## Supported Assets
@@ -14,6 +14,8 @@ A Python application that automatically balances a portfolio across **DeSo (DESO
 | DESO  | Native DeSo blockchain token |
 | USDC  | USD Coin stablecoin          |
 | FOCUS | FOCUS token                  |
+| OPENFUND | OPENFUND token                  |
+
 
 ## Requirements
 
@@ -61,6 +63,7 @@ Create a `.env` file:
 
 ```env
 DESO_SEED=your_deso_seed
+UPDATE_INTERVAL=600
 ```
 
 ## Usage
