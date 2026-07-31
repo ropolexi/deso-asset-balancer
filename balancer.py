@@ -8,6 +8,7 @@ focus_pubkey="BC1YLjEayZDjAPitJJX4Boy7LsEfN3sWAkYb3hgE9kGBirztsc2re1N"
 openfund_pubkey="BC1YLj3zNA7hRAqBVkvsTeqw7oi4H6ogKiAFL1VXhZy6pYeZcZ6TDRY"
 usdc_pubkey="BC1YLiwTN3DbkU8VmD7F7wXcRR1tFX6jDEkLyruHD2WsH3URomimxLX"
 openfund_pubkey="BC1YLj3zNA7hRAqBVkvsTeqw7oi4H6ogKiAFL1VXhZy6pYeZcZ6TDRY"
+kaanha_pubkey="BC1YLhvxVMEUp5y8zpq17VaRE264JX4r4T4XU4Ff8NJ4MrchkGDq4q3"
 load_dotenv()
 
 deso_seed = os.getenv("DESO_SEED")
@@ -19,7 +20,9 @@ node=os.getenv("NODE")
 deso_perc=float(os.getenv("DESO_PERCENTAGE"))
 focus_perc=float(os.getenv("FOCUS_PERCENTAGE"))
 openfund_perc=float(os.getenv("OPENFUND_PERCENTAGE"))
-delta=0.1
+kaanha_perc=float(os.getenv("KAANHA_PERCENTAGE"))
+
+delta=0.05
 deso = DeSoDexClient(is_testnet=False,seed_phrase_or_hex=deso_seed,node_url=node)
 user_public_key=base58_check_encode(deso.deso_keypair.public_key, False)
 
@@ -43,25 +46,27 @@ def get_exchange_rate(data,quote_currency,base_currency_selected):
 
     return (float(best_bid_price)+float(best_ask_price))/2
 
-def get_user_balance(deso_exchange_rate,focus_exchange_rate,openfund_exchange_rate):
+def get_user_balance(deso_exchange_rate,focus_exchange_rate,openfund_exchange_rate,kaanha_exchange_rate):
     res=deso.get_token_balances(
         user_public_key=user_public_key,
         creator_public_keys=[deso_pubkey,
                                 focus_pubkey,
                                 usdc_pubkey,
-                                openfund_pubkey]
+                                openfund_pubkey,
+                                kaanha_pubkey]
         )
-
     deso_coins=deso.base_units_to_coins(float(res["Balances"][deso_pubkey]["BalanceBaseUnits"]),True)
     usdc_coins=deso.base_units_to_coins(float(res["Balances"][usdc_pubkey]["BalanceBaseUnits"]),False)
     focus_coins= deso.base_units_to_coins(float(res["Balances"][focus_pubkey]["BalanceBaseUnits"]),False)
     openfund_coins = deso.base_units_to_coins(float(res["Balances"][openfund_pubkey]["BalanceBaseUnits"]),False)
+    kaanha_coins = deso.base_units_to_coins(float(res["Balances"][kaanha_pubkey]["BalanceBaseUnits"]),False)
 
     deso_balance_usd = deso_coins * deso_exchange_rate
     focus_balance_usd = focus_coins * focus_exchange_rate * deso_exchange_rate
     openfund_balance_usd = openfund_coins * openfund_exchange_rate * deso_exchange_rate
+    kaanha_balance_usd = kaanha_coins * kaanha_exchange_rate * focus_exchange_rate * deso_exchange_rate
 
-    return usdc_coins,deso_balance_usd,focus_balance_usd,openfund_balance_usd
+    return usdc_coins,deso_balance_usd,focus_balance_usd,openfund_balance_usd,kaanha_balance_usd
 
 def place_limit_order(user_public_key,operation, base_currency, quote_currency, price, quantity):
     try:
@@ -113,26 +118,43 @@ while True:
     base_currency_selected = openfund_pubkey
     print("Calculating OPENFUND/DESO market price")
     openfund_exchange_rate = get_exchange_rate(data,quote_currency,base_currency_selected)
+
+    print("Updating KAANHA/FOCUS order book...")
+    data=deso.get_limit_orders(kaanha_pubkey,focus_pubkey)
+    quote_currency = focus_pubkey
+    base_currency_selected = kaanha_pubkey
+    print("Calculating KAANHA/FOCUS market price")
+    kaanha_exchange_rate = get_exchange_rate(data,quote_currency,base_currency_selected)
     
     print("\nExchange RATES")
     print("="*30)
     print(f"deso_exchange_rate:\t{deso_exchange_rate}")
     print(f"focus_exchange_rate:\t{focus_exchange_rate}")
     print(f"openfund_exchange_rate:\t{openfund_exchange_rate}")
+    print(f"kaanha_exchange_rate:\t{kaanha_exchange_rate}")
     print("="*30)
 
     #get user balance
     print("\nUpdating user balance...")
-    usdc_coins,deso_balance_usd,focus_balance_usd,openfund_balance_usd = get_user_balance(deso_exchange_rate,focus_exchange_rate,openfund_exchange_rate)
+    usdc_coins,deso_balance_usd,focus_balance_usd,openfund_balance_usd,kaanha_balance_usd = get_user_balance(deso_exchange_rate,focus_exchange_rate,openfund_exchange_rate,kaanha_exchange_rate)
     
+    total_balance = deso_balance_usd + usdc_coins + focus_balance_usd+openfund_balance_usd+kaanha_balance_usd
+
+    current_deso_balance_perc = 100 * deso_balance_usd/total_balance
+    current_usdc_coins_perc = 100 * usdc_coins/total_balance
+    current_focus_balance_usd_perc = 100 * focus_balance_usd/total_balance
+    current_openfund_balance_usd_perc = 100 * openfund_balance_usd/total_balance
+    current_kaanha_balance_usd_perc = 100 * kaanha_balance_usd/total_balance
+
     print("\nUSER WALLET BALANCE")
     print("="*30)
-    print(f"deso_balance_usd:\t${deso_balance_usd:.2f}")
-    print(f"usd balance:\t\t${usdc_coins:.2f}")
-    print(f"focus_balance_usd:\t${focus_balance_usd:.2f}")
-    print(f"openfund_balance_usd:\t${openfund_balance_usd:.2f}")
+    print(f"deso_balance_usd \t- {current_deso_balance_perc:06.2f}% : ${deso_balance_usd:.2f}")
+    print(f"usd balance \t\t- {current_usdc_coins_perc:06.2f}% : ${usdc_coins:.2f}")
+    print(f"focus_balance_usd \t- {current_focus_balance_usd_perc:06.2f}% : ${focus_balance_usd:.2f}")
+    print(f"openfund_balance_usd \t- {current_openfund_balance_usd_perc:06.2f}% : ${openfund_balance_usd:.2f}")
+    print(f"kaanha_balance_usd \t- {current_kaanha_balance_usd_perc:06.2f}% : ${kaanha_balance_usd:.2f}")
     
-    total_balance = deso_balance_usd + usdc_coins + focus_balance_usd+openfund_balance_usd
+    
     print("="*30)
     print(f"\nTotal_balance:${total_balance:.2f}")
     print("="*30)
@@ -140,13 +162,15 @@ while True:
     deso_target_balance = total_balance * deso_perc /100
     focus_target_balance = total_balance * focus_perc/100
     openfund_target_balance = total_balance * openfund_perc/100
+    kaanha_target_balance = total_balance * kaanha_perc/100
 
-    print(f"deso_target \t\t- {deso_perc}% : ${deso_target_balance:.2f}")
-    print(f"focus_target \t\t- {focus_perc}% : ${focus_target_balance:.2f}")
-    print(f"openfund_target \t- {openfund_perc}% : ${openfund_target_balance:.2f}")
+    print(f"deso_target \t\t- {deso_perc:06.2f}% : ${deso_target_balance:.2f}")
+    print(f"focus_target \t\t- {focus_perc:06.2f}% : ${focus_target_balance:.2f}")
+    print(f"openfund_target \t- {openfund_perc:06.2f}% : ${openfund_target_balance:.2f}")
+    print(f"kaanha_target \t\t- {kaanha_perc:06.2f}% : ${kaanha_target_balance:.2f}")
     
-    print("*"*30)
-
+    print("\nBalancing..")
+    print("Openfund..")
     if openfund_balance_usd>openfund_target_balance+delta:
         sell_amount=round(openfund_balance_usd-openfund_target_balance,2)
         print(f"Selling openfund:${sell_amount}")
@@ -168,27 +192,32 @@ while True:
                 openfund_balance_usd = openfund_balance_usd + buy_amount
                 deso_balance_usd = deso_balance_usd - buy_amount
 
+    print("Focus..")
     if focus_balance_usd>focus_target_balance+delta:
         sell_amount=round(focus_balance_usd-focus_target_balance,2)
         print(f"Selling focus:${sell_amount}")
-        if place_limit_order(user_public_key,"ASK", focus_pubkey, deso_pubkey, 0, sell_amount/deso_exchange_rate):
+        selling_amount_in_deso = sell_amount/deso_exchange_rate
+        print(selling_amount_in_deso)
+        if place_limit_order(user_public_key,"ASK", focus_pubkey, deso_pubkey, 0,selling_amount_in_deso ):
             focus_balance_usd = focus_balance_usd - sell_amount
             deso_balance_usd = deso_balance_usd + sell_amount
         
     if focus_balance_usd<focus_target_balance-delta:
         buy_amount = round(focus_target_balance-focus_balance_usd,2) 
         if deso_balance_usd<buy_amount:#buy deso
-            if(usdc_coins>buy_amount):#buy from usdc 
+            if(usdc_coins>buy_amount):#buy from usdc
                 print(f"Buying deso:${buy_amount}")
                 if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, 0, buy_amount):
                     deso_balance_usd = deso_balance_usd + buy_amount
                     usdc_coins = usdc_coins - buy_amount
-
+            else:
+                print("Not enough usdc!")
+             
         print(f"Buying focus:${buy_amount}")
         if place_limit_order(user_public_key,"BID", focus_pubkey, deso_pubkey, 0, buy_amount/deso_exchange_rate):
                 focus_balance_usd = focus_balance_usd + buy_amount
                 deso_balance_usd = deso_balance_usd - buy_amount
-             
+    print("Deso..")        
     if deso_balance_usd>deso_target_balance+delta:
         sell_amount=round(deso_balance_usd-deso_target_balance,2)
         print(f"Selling deso:${sell_amount}")
@@ -203,7 +232,44 @@ while True:
                 deso_balance_usd = deso_balance_usd + buy_amount
                 usdc_coins = usdc_coins - buy_amount
 
-    print(f"usd:${usdc_coins:.2f},deso:${deso_balance_usd:.2f},focus:${focus_balance_usd:.2f},openfund:${openfund_balance_usd:.2f}")
-    
-    print(f"sleep {update_interval} seconds")
+    print("KAANHA..")        
+    if kaanha_balance_usd>kaanha_target_balance+delta:
+        sell_amount=round(kaanha_balance_usd-kaanha_target_balance,2)
+        print(f"Selling kaanha:${sell_amount}")
+        if place_limit_order(user_public_key,"ASK", kaanha_pubkey, focus_pubkey, 0, (sell_amount/deso_exchange_rate)/focus_exchange_rate):
+                kaanha_balance_usd = kaanha_balance_usd - sell_amount
+                focus_balance_usd = focus_balance_usd + sell_amount
+
+    if kaanha_balance_usd<kaanha_target_balance-delta:
+        buy_amount = round(kaanha_target_balance-kaanha_balance_usd,2)
+        if focus_balance_usd< buy_amount:#not enough focus
+            print(f"Buying focus:${buy_amount}")
+            if deso_balance_usd < buy_amount:#not enough deso
+                print(f"Buying deso:${buy_amount}")
+                if usdc_coins>buy_amount:
+                    if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, 0, buy_amount):
+                        deso_balance_usd = deso_balance_usd + buy_amount
+                        usdc_coins = usdc_coins - buy_amount
+                else:
+                    print("Not enough usdc!")
+                 
+            if place_limit_order(user_public_key,"BID", focus_pubkey, deso_pubkey, 0, buy_amount/deso_exchange_rate):
+                    focus_balance_usd = focus_balance_usd + buy_amount
+                    deso_balance_usd = deso_balance_usd - buy_amount
+
+        print(f"Buying kaanha:${buy_amount}")
+        if place_limit_order(user_public_key,"BID",kaanha_pubkey, focus_pubkey,  0, (buy_amount/deso_exchange_rate)/focus_exchange_rate):
+                kaanha_balance_usd = kaanha_balance_usd + buy_amount
+                focus_balance_usd = focus_balance_usd - buy_amount
+
+    time.sleep(5)# wait till chain update the balances
+    #usdc_coins,deso_balance_usd,focus_balance_usd,openfund_balance_usd,kaanha_balance_usd = get_user_balance(deso_exchange_rate,focus_exchange_rate,openfund_exchange_rate,kaanha_exchange_rate)
+    print("\nUSER WALLET BALANCE AFTER BALANCING")
+    print("="*30)
+    print(f"deso_balance_usd:\t${deso_balance_usd:.2f}")
+    print(f"usd balance:\t\t${usdc_coins:.2f}")
+    print(f"focus_balance_usd:\t${focus_balance_usd:.2f}")
+    print(f"openfund_balance_usd:\t${openfund_balance_usd:.2f}")
+    print(f"kaanha_balance_usd :\t${kaanha_balance_usd:.2f}")
+    print(f"\nsleep {update_interval} seconds")
     time.sleep(update_interval)
