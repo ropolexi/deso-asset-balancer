@@ -170,6 +170,35 @@ while True:
     print(f"kaanha_target \t\t- {kaanha_perc:06.2f}% : ${kaanha_target_balance:.2f}")
     
     print("\nBalancing..")
+    print("KAANHA..")        
+    if kaanha_balance_usd>kaanha_target_balance+delta:
+        sell_amount=round(kaanha_balance_usd-kaanha_target_balance,2)
+        print(f"Selling kaanha:${sell_amount}")
+        if place_limit_order(user_public_key,"ASK", kaanha_pubkey, focus_pubkey, 0, (sell_amount/deso_exchange_rate)/focus_exchange_rate):
+                kaanha_balance_usd = kaanha_balance_usd - sell_amount
+                focus_balance_usd = focus_balance_usd + sell_amount
+
+    if kaanha_balance_usd<kaanha_target_balance-delta:
+        buy_amount = round(kaanha_target_balance-kaanha_balance_usd,2)
+        if focus_balance_usd< buy_amount:#not enough focus
+            print(f"Buying focus:${buy_amount}")
+            if deso_balance_usd < buy_amount:#not enough deso
+                print(f"Buying deso:${buy_amount}")
+                if usdc_coins>buy_amount:
+                    if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, 0, buy_amount):
+                        deso_balance_usd = deso_balance_usd + buy_amount
+                        usdc_coins = usdc_coins - buy_amount
+                else:
+                    print("Not enough usdc!")
+                 
+            if place_limit_order(user_public_key,"BID", focus_pubkey, deso_pubkey, 0, buy_amount/deso_exchange_rate):
+                    focus_balance_usd = focus_balance_usd + buy_amount
+                    deso_balance_usd = deso_balance_usd - buy_amount
+
+        print(f"Buying kaanha:${buy_amount}")
+        if place_limit_order(user_public_key,"BID",kaanha_pubkey, focus_pubkey,  0, (buy_amount/deso_exchange_rate)/focus_exchange_rate):
+                kaanha_balance_usd = kaanha_balance_usd + buy_amount
+                focus_balance_usd = focus_balance_usd - buy_amount
     print("Openfund..")
     if openfund_balance_usd>openfund_target_balance+delta:
         sell_amount=round(openfund_balance_usd-openfund_target_balance,2)
@@ -232,35 +261,7 @@ while True:
                 deso_balance_usd = deso_balance_usd + buy_amount
                 usdc_coins = usdc_coins - buy_amount
 
-    print("KAANHA..")        
-    if kaanha_balance_usd>kaanha_target_balance+delta:
-        sell_amount=round(kaanha_balance_usd-kaanha_target_balance,2)
-        print(f"Selling kaanha:${sell_amount}")
-        if place_limit_order(user_public_key,"ASK", kaanha_pubkey, focus_pubkey, 0, (sell_amount/deso_exchange_rate)/focus_exchange_rate):
-                kaanha_balance_usd = kaanha_balance_usd - sell_amount
-                focus_balance_usd = focus_balance_usd + sell_amount
-
-    if kaanha_balance_usd<kaanha_target_balance-delta:
-        buy_amount = round(kaanha_target_balance-kaanha_balance_usd,2)
-        if focus_balance_usd< buy_amount:#not enough focus
-            print(f"Buying focus:${buy_amount}")
-            if deso_balance_usd < buy_amount:#not enough deso
-                print(f"Buying deso:${buy_amount}")
-                if usdc_coins>buy_amount:
-                    if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, 0, buy_amount):
-                        deso_balance_usd = deso_balance_usd + buy_amount
-                        usdc_coins = usdc_coins - buy_amount
-                else:
-                    print("Not enough usdc!")
-                 
-            if place_limit_order(user_public_key,"BID", focus_pubkey, deso_pubkey, 0, buy_amount/deso_exchange_rate):
-                    focus_balance_usd = focus_balance_usd + buy_amount
-                    deso_balance_usd = deso_balance_usd - buy_amount
-
-        print(f"Buying kaanha:${buy_amount}")
-        if place_limit_order(user_public_key,"BID",kaanha_pubkey, focus_pubkey,  0, (buy_amount/deso_exchange_rate)/focus_exchange_rate):
-                kaanha_balance_usd = kaanha_balance_usd + buy_amount
-                focus_balance_usd = focus_balance_usd - buy_amount
+    
 
     time.sleep(5)# wait till chain update the balances
     #usdc_coins,deso_balance_usd,focus_balance_usd,openfund_balance_usd,kaanha_balance_usd = get_user_balance(deso_exchange_rate,focus_exchange_rate,openfund_exchange_rate,kaanha_exchange_rate)
