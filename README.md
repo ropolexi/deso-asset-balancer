@@ -16,7 +16,6 @@ A Python application that automatically balances a portfolio across **DeSo (DESO
 | FOCUS | FOCUS token                  |
 | OPENFUND | OPENFUND token                  |
 
-
 ## Requirements
 
 * Python 3.10+
@@ -62,13 +61,14 @@ pip install -r requirements.txt
 Create a `.env` file:
 
 ```env
-DESO_SEED=your_deso_seed
+DESO_SEED="your_deso_seed"
 UPDATE_INTERVAL=600
 NODE="https://node.deso.org"
 
 DESO_PERCENTAGE=20
-FOCUS_PERCENTAGE=10
-OPENFUND_PERCENTAGE=10
+FOCUS_PERCENTAGE=6.2
+OPENFUND_PERCENTAGE=6.2
+KAANHA_PERCENTAGE=40
 ```
 
 ## Usage
