@@ -69,6 +69,7 @@ DESO_PERCENTAGE=20
 FOCUS_PERCENTAGE=6.2
 OPENFUND_PERCENTAGE=6.2
 
+HARD_CAP = 30 # max asset $ value per token to keep
 DEVIATION=1 #how much % difference before triggering BUY/SELL to avoid small rapid fluctuations
 TOKENS_BASED_ON_FOCUS = [{"name":"Kaanha","pubkey":"BC1YLhvxVMEUp5y8zpq17VaRE264JX4r4T4XU4Ff8NJ4MrchkGDq4q3","target_percentage":42},{"name":"Arnoud","pubkey":"BC1YLgBND6GqfWYb8HyY3hAm2UpT8aeFv2fX41sMPAu7uuVjuSQtDju","target_percentage":3},{"name":"SeanSlater","pubkey":"BC1YLirtb7CjNwVmWEt7t1487Qpo4LoPBDEGvfqYwXXZcj2dDLNMBVU","target_percentage":3}]
 BALANCER_ACTIVE=False
