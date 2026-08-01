@@ -4,6 +4,11 @@ import os
 import json
 from dotenv import load_dotenv
 
+__author__ = "NimalYas"
+__version__ = "1.0.0"
+__last_modified__ = "2026-08-02"
+
+
 deso_pubkey="DESO"
 focus_pubkey="BC1YLjEayZDjAPitJJX4Boy7LsEfN3sWAkYb3hgE9kGBirztsc2re1N"
 openfund_pubkey="BC1YLj3zNA7hRAqBVkvsTeqw7oi4H6ogKiAFL1VXhZy6pYeZcZ6TDRY"
@@ -27,7 +32,15 @@ balancer_active=bool(os.getenv("BALANCER_ACTIVE", "False").lower() == "true")
 print_debug=bool(os.getenv("PRINT_DEBUG", "False").lower() == "true")
 deviation=float(os.getenv("DEVIATION"))
 
-print("\nDESO Asset Balancer\n")
+print("=" * 50)
+print("DESO Asset Balancer")
+print("=" * 50)
+print(f"Author         : {__author__}")
+print(f"Version        : {__version__}")
+print(f"Last Modified  : {__last_modified__}")
+print("=" * 50)
+print()
+
 print(f"{'Balancer Active':<20}: {balancer_active}")
 print(f"{'Node':<20}: {node}")
 print(f"{'Trigger Deviation':<20}: {deviation} %")
@@ -186,7 +199,7 @@ while True:
     for token in tokens_based_on_focus:
         label = token['name']
         print(f"{label:<20} | BID {token['best_bid']:10f} | ASK {token['best_ask']:10f} | FOCUS {token['exchange_rate']:10f} | {deso_exchange_rate*focus_exchange_rate*token['exchange_rate']:10f} USDC")
-    print("="*70)
+    print("="*90)
 
     #get user balance
     if print_debug:print("\nUpdating user balance...")
@@ -211,20 +224,20 @@ while True:
     openfund_target_balance = total_balance * openfund_perc/100
     for token in tokens_based_on_focus:
         token["target_balance_usd"] = total_balance * token["target_percentage"]/100
-    print("="*80)
-    print(f"{'Token Name':<25} | {'Balance':<6} | {'Current':<6} % | {'Target':<6} % | {'Target $':<7} | {'Deviation':<5}")
-    print("="*80)
+    print("="*75)
+    print(f"{'Token Name':<20} | {'Balance':<6} | {'Current':<6} % | {'Target':<6} % | {'Target $':<7} | {'Deviation':<5}")
+    print("="*75)
     dev=100*(deso_balance_usd -deso_target_balance)/deso_target_balance
-    print(f"{'deso':<25} | ${deso_balance_usd:7.2f} | {current_deso_balance_perc:6.2f} % | {deso_perc:6.2f} % | ${deso_target_balance:7.2f} | ({dev:+5.1f}%)")
+    print(f"{'deso':<20} | ${deso_balance_usd:7.2f} | {current_deso_balance_perc:6.2f} % | {deso_perc:6.2f} % | ${deso_target_balance:7.2f} | ({dev:+5.1f}%)")
     dev=100*(focus_balance_usd -focus_target_balance)/focus_target_balance
-    print(f"{'focus':<25} | ${focus_balance_usd:7.2f} | {current_focus_balance_usd_perc:6.2f} % | {focus_perc:6.2f} % | ${focus_target_balance:7.2f} | ({dev:+5.1f}%)")
+    print(f"{'focus':<20} | ${focus_balance_usd:7.2f} | {current_focus_balance_usd_perc:6.2f} % | {focus_perc:6.2f} % | ${focus_target_balance:7.2f} | ({dev:+5.1f}%)")
     dev=100*(openfund_balance_usd -openfund_target_balance)/openfund_target_balance
-    print(f"{'openfund':<25} | ${openfund_balance_usd:7.2f} | {current_openfund_balance_usd_perc:6.2f} % | {openfund_perc:6.2f} % | ${openfund_target_balance:7.2f} | ({dev:+5.1f}%)")
+    print(f"{'openfund':<20} | ${openfund_balance_usd:7.2f} | {current_openfund_balance_usd_perc:6.2f} % | {openfund_perc:6.2f} % | ${openfund_target_balance:7.2f} | ({dev:+5.1f}%)")
     for token in tokens_based_on_focus:
         label = f"{token['name']}"
         dev=100*(token['balance_usd']-token['target_balance_usd'])/token['target_balance_usd']
-        print(f"{label:<25} | ${token['balance_usd']:7.2f} | {token['current_perc']:6.2f} % | {token['target_percentage']:6.2f} % | ${token['target_balance_usd']:7.2f} | ({dev:+5.1f}%)")
-    
+        print(f"{label:<20} | ${token['balance_usd']:7.2f} | {token['current_perc']:6.2f} % | {token['target_percentage']:6.2f} % | ${token['target_balance_usd']:7.2f} | ({dev:+5.1f}%)")
+    print("="*75)
     
     if balancer_active:
         if print_debug:print("\nBalancing..")
