@@ -26,7 +26,10 @@ focus_perc=float(os.getenv("FOCUS_PERCENTAGE"))
 openfund_perc=float(os.getenv("OPENFUND_PERCENTAGE"))
 
 tokens_data = json.loads(os.getenv("TOKENS_BASED_ON_FOCUS","[]"))
+balancer_active=bool(os.getenv("BALANCER_ACTIVE", "False").lower() == "true")
+print_debug=bool(os.getenv("PRINT_DEBUG", "False").lower() == "true")
 
+print(f"Balancer Active:{balancer_active}")
 tokens_based_on_focus = [
     {
         "name":token["name"],
@@ -39,7 +42,7 @@ tokens_based_on_focus = [
     } for token in tokens_data
 ]
 
-delta=float(os.getenv("DELTA"))
+deviation=float(os.getenv("DEVIATION"))
 deso = DeSoDexClient(is_testnet=False,seed_phrase_or_hex=deso_seed,node_url=node)
 user_public_key=base58_check_encode(deso.deso_keypair.public_key, False)
 
@@ -59,7 +62,8 @@ def get_exchange_rate(data,quote_currency,base_currency_selected):
     best_bid_price, best_bid_quantity,best_bid_trasactor = max(bids)
     
     best_ask_price, best_ask_quantity,best_ask_trasactor = min(asks)
-    print(f"best_bid_price:{best_bid_price},best_ask_price:{best_ask_price}")
+    if print_debug:
+        print(f"best_bid_price:{best_bid_price},best_ask_price:{best_ask_price}")
 
     return (float(best_bid_price)+float(best_ask_price))/2
 
@@ -117,36 +121,37 @@ print("DESO Asset Balancer")
 print("="*30)
 while True:
     #get Order book for DESO/USDC
-    print("Updating DESO/USDC order book...")
+    
+    if print_debug:print("Updating DESO/USDC order book...")
     data=deso.get_limit_orders(deso_pubkey,usdc_pubkey)
     quote_currency = usdc_pubkey
     base_currency_selected = deso_pubkey
-    print("Calculating DESO/USDC market price")
+    if print_debug:print("Calculating DESO/USDC market price")
     deso_exchange_rate = get_exchange_rate(data,quote_currency,base_currency_selected)
 
     #get Order book for FOCUS/DESO
-    print("Updating FOCUS/DESO order book...")
+    if print_debug:print("Updating FOCUS/DESO order book...")
     data=deso.get_limit_orders(focus_pubkey,deso_pubkey)
     quote_currency = deso_pubkey
     base_currency_selected = focus_pubkey
-    print("Calculating FOCUS/DESO market price")
+    if print_debug:print("Calculating FOCUS/DESO market price")
     focus_exchange_rate = get_exchange_rate(data,quote_currency,base_currency_selected)
 
     
     #get Order book for OPENFUND/DESO
-    print("Updating OPENFUND/DESO order book...")
+    if print_debug:print("Updating OPENFUND/DESO order book...")
     data=deso.get_limit_orders(openfund_pubkey,deso_pubkey)
     quote_currency = deso_pubkey
     base_currency_selected = openfund_pubkey
-    print("Calculating OPENFUND/DESO market price")
+    if print_debug:print("Calculating OPENFUND/DESO market price")
     openfund_exchange_rate = get_exchange_rate(data,quote_currency,base_currency_selected)
 
     for token in tokens_based_on_focus:
-        print(f"Updating {token['name']}/FOCUS order book...")
+        if print_debug:print(f"Updating {token['name']}/FOCUS order book...")
         data=deso.get_limit_orders(token["pubkey"],focus_pubkey)
         quote_currency = focus_pubkey
         base_currency_selected = token["pubkey"]
-        print(f"Calculating {token['name']}/FOCUS market price")
+        if print_debug:print(f"Calculating {token['name']}/FOCUS market price")
         token["exchange_rate"] = get_exchange_rate(data,quote_currency,base_currency_selected)
     
     print("\nExchange RATES")
@@ -172,134 +177,123 @@ while True:
     current_openfund_balance_usd_perc = 100 * openfund_balance_usd/total_balance
     for token in tokens_based_on_focus:
         token["current_perc"] = 100 * token["balance_usd"]/total_balance
-
-    print("\nUSER WALLET BALANCE")
-    print("="*30)
-    print(f"deso_balance_usd \t- {current_deso_balance_perc:06.2f}% : ${deso_balance_usd:.2f}")
-    print(f"usd balance \t\t- {current_usdc_coins_perc:06.2f}% : ${usdc_coins:.2f}")
-    print(f"focus_balance_usd \t- {current_focus_balance_usd_perc:06.2f}% : ${focus_balance_usd:.2f}")
-    print(f"openfund_balance_usd \t- {current_openfund_balance_usd_perc:06.2f}% : ${openfund_balance_usd:.2f}")
-    for token in tokens_based_on_focus:
-        print(f"{token['name']}_balance_usd \t- {token['current_perc']:06.2f}% : ${token['balance_usd']:.2f}")
-    
-    print("="*30)
+  
     print(f"\nTotal_balance:${total_balance:.2f}")
-    print("="*30)
+    
     #balance_per_asset = total_balance/4
     deso_target_balance = total_balance * deso_perc /100
     focus_target_balance = total_balance * focus_perc/100
     openfund_target_balance = total_balance * openfund_perc/100
     for token in tokens_based_on_focus:
         token["target_balance_usd"] = total_balance * token["target_percentage"]/100
-
-    print(f"deso_target \t\t- {deso_perc:06.2f}% : ${deso_target_balance:.2f}")
-    print(f"focus_target \t\t- {focus_perc:06.2f}% : ${focus_target_balance:.2f}")
-    print(f"openfund_target \t- {openfund_perc:06.2f}% : ${openfund_target_balance:.2f}")
+    print("="*80)
+    print(f"{'Token Name':<25} | {'Balance':<6} | {'Current':<6} % | {'Target':<6} % | {'Target $':<7} | {'Deviation':<5}")
+    print("="*80)
+    dev=100*(deso_balance_usd -deso_target_balance)/deso_target_balance
+    print(f"{'deso':<25} | ${deso_balance_usd:7.2f} | {current_deso_balance_perc:6.2f} % | {deso_perc:6.2f} % | ${deso_target_balance:7.2f} | ({dev:+5.1f}%)")
+    dev=100*(focus_balance_usd -focus_target_balance)/focus_target_balance
+    print(f"{'focus':<25} | ${focus_balance_usd:7.2f} | {current_focus_balance_usd_perc:6.2f} % | {focus_perc:6.2f} % | ${focus_target_balance:7.2f} | ({dev:+5.1f}%)")
+    dev=100*(openfund_balance_usd -openfund_target_balance)/openfund_target_balance
+    print(f"{'openfund':<25} | ${openfund_balance_usd:7.2f} | {current_openfund_balance_usd_perc:6.2f} % | {openfund_perc:6.2f} % | ${openfund_target_balance:7.2f} | ({dev:+5.1f}%)")
     for token in tokens_based_on_focus:
-        print(f"{token['name']}_target \t\t- {token['target_percentage']:06.2f}% : ${token['target_balance_usd']:.2f}")
+        label = f"{token['name']}"
+        dev=100*(token['balance_usd']-token['target_balance_usd'])/token['target_balance_usd']
+        print(f"{label:<25} | ${token['balance_usd']:7.2f} | {token['current_perc']:6.2f} % | {token['target_percentage']:6.2f} % | ${token['target_balance_usd']:7.2f} | ({dev:+5.1f}%)")
     
-    print("\nBalancing..")
-    for token in tokens_based_on_focus:
-        print(f"{token['name']}..")        
-        if token['balance_usd']>token['target_balance_usd']+delta:
-            sell_amount=round(token['balance_usd']-token['target_balance_usd'],2)
-            print(f"Selling {token['name']}:${sell_amount}")
-            if place_limit_order(user_public_key,"ASK", token["pubkey"], focus_pubkey, 0, (sell_amount/deso_exchange_rate)/focus_exchange_rate):
-                    token['balance_usd'] = token['balance_usd'] - sell_amount
-                    focus_balance_usd = focus_balance_usd + sell_amount
+    
+    if balancer_active:
+        print("\nBalancing..")
+        for token in tokens_based_on_focus:
+            print(f"{token['name']}..")        
+            if token['balance_usd']>token['target_balance_usd']*(1+deviation/100):
+                sell_amount=round(token['balance_usd']-token['target_balance_usd'],2)
+                print(f"Selling {token['name']}:${sell_amount}")
+                if place_limit_order(user_public_key,"ASK", token["pubkey"], focus_pubkey, 0, (sell_amount/deso_exchange_rate)/focus_exchange_rate):
+                        token['balance_usd'] = token['balance_usd'] - sell_amount
+                        focus_balance_usd = focus_balance_usd + sell_amount
 
-        if token['balance_usd']<token['target_balance_usd']-delta:
-            buy_amount = round(token['target_balance_usd']-token['balance_usd'],2)
-            if focus_balance_usd< buy_amount:#not enough focus
-                print(f"Buying focus:${buy_amount}")
-                if deso_balance_usd < buy_amount:#not enough deso
+            if token['balance_usd']<token['target_balance_usd']*(1-deviation/100):
+                buy_amount = round(token['target_balance_usd']-token['balance_usd'],2)
+                if focus_balance_usd< buy_amount:#not enough focus
+                    print(f"Buying focus:${buy_amount}")
+                    if deso_balance_usd < buy_amount:#not enough deso
+                        print(f"Buying deso:${buy_amount}")
+                        if usdc_coins>buy_amount:
+                            if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, 0, buy_amount):
+                                deso_balance_usd = deso_balance_usd + buy_amount
+                                usdc_coins = usdc_coins - buy_amount
+                        else:
+                            print("Not enough usdc!")
+                        
+                    if place_limit_order(user_public_key,"BID", focus_pubkey, deso_pubkey, 0, buy_amount/deso_exchange_rate):
+                            focus_balance_usd = focus_balance_usd + buy_amount
+                            deso_balance_usd = deso_balance_usd - buy_amount
+
+                print(f"Buying {token['name']}:${buy_amount}")
+                if place_limit_order(user_public_key,"BID",token["pubkey"], focus_pubkey,  0, (buy_amount/deso_exchange_rate)/focus_exchange_rate):
+                        token['balance_usd'] = token['balance_usd'] + buy_amount
+                        focus_balance_usd = focus_balance_usd - buy_amount
+        print("Openfund..")
+        if openfund_balance_usd>openfund_target_balance*(1+deviation/100):
+            sell_amount=round(openfund_balance_usd-openfund_target_balance,2)
+            print(f"Selling openfund:${sell_amount}")
+            if place_limit_order(user_public_key,"ASK", openfund_pubkey, deso_pubkey, 0, sell_amount/deso_exchange_rate):
+                openfund_balance_usd = openfund_balance_usd - sell_amount
+                deso_balance_usd = deso_balance_usd + sell_amount
+            
+        if openfund_balance_usd<openfund_target_balance*(1-deviation/100):
+            buy_amount = round(openfund_target_balance-openfund_balance_usd,2) 
+            if deso_balance_usd<buy_amount:# deso balance low
+                if(usdc_coins>buy_amount):#buy from usdc
                     print(f"Buying deso:${buy_amount}")
-                    if usdc_coins>buy_amount:
-                        if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, 0, buy_amount):
-                            deso_balance_usd = deso_balance_usd + buy_amount
-                            usdc_coins = usdc_coins - buy_amount
-                    else:
-                        print("Not enough usdc!")
-                    
-                if place_limit_order(user_public_key,"BID", focus_pubkey, deso_pubkey, 0, buy_amount/deso_exchange_rate):
-                        focus_balance_usd = focus_balance_usd + buy_amount
-                        deso_balance_usd = deso_balance_usd - buy_amount
+                    if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, 0, buy_amount):
+                        deso_balance_usd = deso_balance_usd + buy_amount
+                        usdc_coins = usdc_coins - buy_amount
+            
+            print(f"Buying openfund:${buy_amount}")
+            if place_limit_order(user_public_key,"BID", openfund_pubkey, deso_pubkey, 0, buy_amount/deso_exchange_rate):
+                    openfund_balance_usd = openfund_balance_usd + buy_amount
+                    deso_balance_usd = deso_balance_usd - buy_amount
 
-            print(f"Buying {token['name']}:${buy_amount}")
-            if place_limit_order(user_public_key,"BID",token["pubkey"], focus_pubkey,  0, (buy_amount/deso_exchange_rate)/focus_exchange_rate):
-                    token['balance_usd'] = token['balance_usd'] + buy_amount
-                    focus_balance_usd = focus_balance_usd - buy_amount
-    print("Openfund..")
-    if openfund_balance_usd>openfund_target_balance+delta:
-        sell_amount=round(openfund_balance_usd-openfund_target_balance,2)
-        print(f"Selling openfund:${sell_amount}")
-        if place_limit_order(user_public_key,"ASK", openfund_pubkey, deso_pubkey, 0, sell_amount/deso_exchange_rate):
-            openfund_balance_usd = openfund_balance_usd - sell_amount
-            deso_balance_usd = deso_balance_usd + sell_amount
-        
-    if openfund_balance_usd<openfund_target_balance-delta:
-        buy_amount = round(openfund_target_balance-openfund_balance_usd,2) 
-        if deso_balance_usd<buy_amount:# deso balance low
-            if(usdc_coins>buy_amount):#buy from usdc
-                print(f"Buying deso:${buy_amount}")
-                if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, 0, buy_amount):
+        print("Focus..")
+        if focus_balance_usd>focus_target_balance*(1+deviation/100):
+            sell_amount=round(focus_balance_usd-focus_target_balance,2)
+            print(f"Selling focus:${sell_amount}")
+            selling_amount_in_deso = sell_amount/deso_exchange_rate
+            print(selling_amount_in_deso)
+            if place_limit_order(user_public_key,"ASK", focus_pubkey, deso_pubkey, 0,selling_amount_in_deso ):
+                focus_balance_usd = focus_balance_usd - sell_amount
+                deso_balance_usd = deso_balance_usd + sell_amount
+            
+        if focus_balance_usd<focus_target_balance*(1-deviation/100):
+            buy_amount = round(focus_target_balance-focus_balance_usd,2) 
+            if deso_balance_usd<buy_amount:#buy deso
+                if(usdc_coins>buy_amount):#buy from usdc
+                    print(f"Buying deso:${buy_amount}")
+                    if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, 0, buy_amount):
+                        deso_balance_usd = deso_balance_usd + buy_amount
+                        usdc_coins = usdc_coins - buy_amount
+                else:
+                    print("Not enough usdc!")
+                
+            print(f"Buying focus:${buy_amount}")
+            if place_limit_order(user_public_key,"BID", focus_pubkey, deso_pubkey, 0, buy_amount/deso_exchange_rate):
+                    focus_balance_usd = focus_balance_usd + buy_amount
+                    deso_balance_usd = deso_balance_usd - buy_amount
+        print("Deso..")        
+        if deso_balance_usd>deso_target_balance*(1+deviation/100):
+            sell_amount=round(deso_balance_usd-deso_target_balance,2)
+            print(f"Selling deso:${sell_amount}")
+            if place_limit_order(user_public_key,"ASK", deso_pubkey, usdc_pubkey, 0, sell_amount):
+                    deso_balance_usd = deso_balance_usd - sell_amount
+                    usdc_coins = usdc_coins + sell_amount
+
+        if deso_balance_usd<deso_target_balance*(1-deviation/100):
+            buy_amount = round(deso_target_balance-deso_balance_usd,2) 
+            print(f"Buying deso:${buy_amount}")
+            if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, 0, buy_amount):
                     deso_balance_usd = deso_balance_usd + buy_amount
                     usdc_coins = usdc_coins - buy_amount
-        
-        print(f"Buying openfund:${buy_amount}")
-        if place_limit_order(user_public_key,"BID", openfund_pubkey, deso_pubkey, 0, buy_amount/deso_exchange_rate):
-                openfund_balance_usd = openfund_balance_usd + buy_amount
-                deso_balance_usd = deso_balance_usd - buy_amount
-
-    print("Focus..")
-    if focus_balance_usd>focus_target_balance+delta:
-        sell_amount=round(focus_balance_usd-focus_target_balance,2)
-        print(f"Selling focus:${sell_amount}")
-        selling_amount_in_deso = sell_amount/deso_exchange_rate
-        print(selling_amount_in_deso)
-        if place_limit_order(user_public_key,"ASK", focus_pubkey, deso_pubkey, 0,selling_amount_in_deso ):
-            focus_balance_usd = focus_balance_usd - sell_amount
-            deso_balance_usd = deso_balance_usd + sell_amount
-        
-    if focus_balance_usd<focus_target_balance-delta:
-        buy_amount = round(focus_target_balance-focus_balance_usd,2) 
-        if deso_balance_usd<buy_amount:#buy deso
-            if(usdc_coins>buy_amount):#buy from usdc
-                print(f"Buying deso:${buy_amount}")
-                if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, 0, buy_amount):
-                    deso_balance_usd = deso_balance_usd + buy_amount
-                    usdc_coins = usdc_coins - buy_amount
-            else:
-                print("Not enough usdc!")
-             
-        print(f"Buying focus:${buy_amount}")
-        if place_limit_order(user_public_key,"BID", focus_pubkey, deso_pubkey, 0, buy_amount/deso_exchange_rate):
-                focus_balance_usd = focus_balance_usd + buy_amount
-                deso_balance_usd = deso_balance_usd - buy_amount
-    print("Deso..")        
-    if deso_balance_usd>deso_target_balance+delta:
-        sell_amount=round(deso_balance_usd-deso_target_balance,2)
-        print(f"Selling deso:${sell_amount}")
-        if place_limit_order(user_public_key,"ASK", deso_pubkey, usdc_pubkey, 0, sell_amount):
-                deso_balance_usd = deso_balance_usd - sell_amount
-                usdc_coins = usdc_coins + sell_amount
-
-    if deso_balance_usd<deso_target_balance-delta:
-        buy_amount = round(deso_target_balance-deso_balance_usd,2) 
-        print(f"Buying deso:${buy_amount}")
-        if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, 0, buy_amount):
-                deso_balance_usd = deso_balance_usd + buy_amount
-                usdc_coins = usdc_coins - buy_amount
-
-    
-    print("\nUSER WALLET BALANCE AFTER BALANCING")
-    print("="*30)
-    print(f"deso_balance_usd:\t${deso_balance_usd:.2f}")
-    print(f"usd balance:\t\t${usdc_coins:.2f}")
-    print(f"focus_balance_usd:\t${focus_balance_usd:.2f}")
-    print(f"openfund_balance_usd:\t${openfund_balance_usd:.2f}")
-    for token in tokens_based_on_focus:
-        print(f"{token['name']}_balance_usd :\t${token['balance_usd']:.2f}")
     
     
     print(f"\nsleep {update_interval} seconds")
