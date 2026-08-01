@@ -4,7 +4,6 @@ import os
 import json
 from dotenv import load_dotenv
 
-
 deso_pubkey="DESO"
 focus_pubkey="BC1YLjEayZDjAPitJJX4Boy7LsEfN3sWAkYb3hgE9kGBirztsc2re1N"
 openfund_pubkey="BC1YLj3zNA7hRAqBVkvsTeqw7oi4H6ogKiAFL1VXhZy6pYeZcZ6TDRY"
@@ -13,12 +12,10 @@ openfund_pubkey="BC1YLj3zNA7hRAqBVkvsTeqw7oi4H6ogKiAFL1VXhZy6pYeZcZ6TDRY"
 
 load_dotenv()
 
-
-
 deso_seed = os.getenv("DESO_SEED")
 
 update_interval = int(os.getenv("UPDATE_INTERVAL"))
-
+hard_cap = float(os.getenv("HARD_CAP"))
 node=os.getenv("NODE")
 
 deso_perc=float(os.getenv("DESO_PERCENTAGE"))
@@ -34,6 +31,7 @@ print("\nDESO Asset Balancer\n")
 print(f"{'Balancer Active':<20}: {balancer_active}")
 print(f"{'Node':<20}: {node}")
 print(f"{'Trigger Deviation':<20}: {deviation} %")
+print(f"{'Hard Limit':<20}: $ {hard_cap}")
 
 
 tokens_based_on_focus = [
@@ -237,8 +235,8 @@ while True:
                         token['balance_usd'] = token['balance_usd'] - sell_amount
                         focus_balance_usd = focus_balance_usd + sell_amount
 
-            if token['balance_usd']<token['target_balance_usd']*(1-deviation/100):
-                buy_amount = round(token['target_balance_usd']-token['balance_usd'],2)
+            if token['balance_usd']<token['target_balance_usd']*(1-deviation/100) and token['balance_usd'] < hard_cap:
+                buy_amount =round(min(token['target_balance_usd'],hard_cap)-token['balance_usd'],2)
                 if focus_balance_usd< buy_amount:#not enough focus
                     if print_debug:print(f"Buying focus:${buy_amount}")
                     if deso_balance_usd < buy_amount:#not enough deso
@@ -266,8 +264,8 @@ while True:
                 openfund_balance_usd = openfund_balance_usd - sell_amount
                 deso_balance_usd = deso_balance_usd + sell_amount
             
-        if openfund_balance_usd<openfund_target_balance*(1-deviation/100):
-            buy_amount = round(openfund_target_balance-openfund_balance_usd,2) 
+        if openfund_balance_usd<openfund_target_balance*(1-deviation/100) and openfund_balance_usd < hard_cap:
+            buy_amount = round(min(openfund_target_balance,hard_cap)-openfund_balance_usd,2) 
             if deso_balance_usd<buy_amount:# deso balance low
                 if(usdc_coins>buy_amount):#buy from usdc
                     print(f"Buying deso:${buy_amount}")
@@ -290,8 +288,8 @@ while True:
                 focus_balance_usd = focus_balance_usd - sell_amount
                 deso_balance_usd = deso_balance_usd + sell_amount
             
-        if focus_balance_usd<focus_target_balance*(1-deviation/100):
-            buy_amount = round(focus_target_balance-focus_balance_usd,2) 
+        if focus_balance_usd<focus_target_balance*(1-deviation/100) and focus_balance_usd<hard_cap:
+            buy_amount = round(min(focus_target_balance,hard_cap)-focus_balance_usd,2) 
             if deso_balance_usd<buy_amount:#buy deso
                 if(usdc_coins>buy_amount):#buy from usdc
                     print(f"Buying deso:${buy_amount}")
@@ -313,8 +311,8 @@ while True:
                     deso_balance_usd = deso_balance_usd - sell_amount
                     usdc_coins = usdc_coins + sell_amount
 
-        if deso_balance_usd<deso_target_balance*(1-deviation/100):
-            buy_amount = round(deso_target_balance-deso_balance_usd,2) 
+        if deso_balance_usd<deso_target_balance*(1-deviation/100) and deso_balance_usd<hard_cap:
+            buy_amount = round(min(deso_target_balance,hard_cap)-deso_balance_usd,2) 
             print(f"Buying deso:${buy_amount}")
             if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, 0, buy_amount):
                     deso_balance_usd = deso_balance_usd + buy_amount
