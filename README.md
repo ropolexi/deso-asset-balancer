@@ -1,20 +1,34 @@
 # DeSo Asset Balancer
 
-A Python application that automatically balances a portfolio across **DeSo (DESO)**, **USDC**, **FOCUS** and **OPENFUND**.
+An automated Python portfolio manager for the **DeSo** ecosystem that continuously monitors your wallet and rebalances your holdings across **DESO**, **USDC**, **FOCUS**, **OPENFUND**, and selected creator coins.
 
-## Features
+The balancer calculates your current portfolio allocation, compares it to your configured targets, and automatically executes the required trades while respecting configurable safety limits.
 
-* Balance holdings between DESO, USDC, FOCUS and OPENFUND
-* Calculate required buy/sell amounts
+# Features
 
-## Supported Assets
+* Automatic portfolio rebalancing
+* Supports **DESO**, **USDC**, **FOCUS**, and **OPENFUND**
+* Creator coin allocation based on FOCUS.
+* Configurable target portfolio percentages
+* Automatic buy and sell order calculation
+* Continuous monitoring with configurable update intervals
+* Configurable deviation threshold to avoid unnecessary trades
+* Hard cap protection to prevent excessive purchases
+* Optional automatic trading mode
+* Dry-run mode by disabling automatic execution
+* Detailed debug logging
+* Secure configuration using environment variables
+* Designed for unattended long-running execution
+  
+# Supported Assets
 
-| Asset | Description                  |
-| ----- | ---------------------------- |
-| DESO  | Native DeSo blockchain token |
-| USDC  | USD Coin stablecoin          |
-| FOCUS | FOCUS token                  |
-| OPENFUND | OPENFUND token                  |
+| Asset         | Description                                                 |
+| ------------- | ----------------------------------------------------------- |
+| DESO          | Native DeSo blockchain token                                |
+| USDC          | USD Coin stablecoin                                         |
+| FOCUS         | FOCUS token                                                 |
+| OPENFUND      | OPENFUND token                                              |
+| Creator Coins | Creator coins paired with FOCUS |
 
 ## Requirements
 
@@ -70,12 +84,29 @@ FOCUS_PERCENTAGE=6.2
 OPENFUND_PERCENTAGE=6.2
 
 HARD_CAP = 30 # Maximum allowed asset value; prevents purchases above this limit.
-DEVIATION=5 # # Ignore price changes smaller than this percentage to prevent unnecessary BUY/SELL orders.
+DEVIATION = 5   # Ignore price changes smaller than this percentage to prevent unnecessary BUY/SELL orders.
 TOKENS_BASED_ON_FOCUS = [{"name":"Kaanha","pubkey":"BC1YLhvxVMEUp5y8zpq17VaRE264JX4r4T4XU4Ff8NJ4MrchkGDq4q3","target_percentage":42},{"name":"Arnoud","pubkey":"BC1YLgBND6GqfWYb8HyY3hAm2UpT8aeFv2fX41sMPAu7uuVjuSQtDju","target_percentage":3},{"name":"SeanSlater","pubkey":"BC1YLirtb7CjNwVmWEt7t1487Qpo4LoPBDEGvfqYwXXZcj2dDLNMBVU","target_percentage":3},{"name":"Ryleesnet","pubkey":"BC1YLijd5XEneHzVd5VFb2mgdNkRpPneNWY6fKJ3ptBVJ5guqAnPSke","target_percentage":3}]
-BALANCER_ACTIVE=True
-PRINT_DEBUG=False
-```
 
+BALANCER_ACTIVE = True # Enable or disable automatic trading
+PRINT_DEBUG = False
+```
+## Configuration Options
+
+| Variable                | Description                                                                |
+| ----------------------- | -------------------------------------------------------------------------- |
+| `DESO_SEED`             | Your DeSo wallet seed phrase                                               |
+| `NODE`                  | DeSo node endpoint                                                         |
+| `UPDATE_INTERVAL`       | Time between portfolio checks (seconds)                                    |
+| `DESO_PERCENTAGE`       | Target percentage allocated to DESO                                        |
+| `FOCUS_PERCENTAGE`      | Target percentage allocated to FOCUS                                       |
+| `OPENFUND_PERCENTAGE`   | Target percentage allocated to OPENFUND                                    |
+| `HARD_CAP`              | Maximum value allowed for an asset before additional purchases are blocked |
+| `DEVIATION`             | Minimum allocation difference required before trading                      |
+| `TOKENS_BASED_ON_FOCUS` | All the Creator coins details (paired with FOCUS)              |
+| `BALANCER_ACTIVE`       | Enables or disables automatic trading                                      |
+| `PRINT_DEBUG`           | Enables detailed logging                                                   |
+
+---
 ## Usage
 
 Run the application:
@@ -83,15 +114,23 @@ Run the application:
 ```bash
 python balancer.py
 ```
+The application will continue running until stopped, checking your portfolio every `UPDATE_INTERVAL` seconds.
 
 ## How It Works
 
-1. Retrieve current balances.
-2. Fetch current market prices.
-3. Calculate the total portfolio value.
-4. Compare the current allocation against the target allocation.
-5. Determine the required buy/sell amounts.
-6. Execute or display the rebalance plan.
+During each update cycle the balancer performs the following steps:
+
+1. Connects to the configured DeSo node.
+2. Retrieves wallet balances.
+3. Fetches current market prices.
+4. Calculates the total portfolio value.
+5. Determines the current allocation of every supported asset.
+6. Calculates the desired allocation using your configured percentages.
+7. Applies the configured deviation threshold to avoid unnecessary trades.
+8. Checks the hard cap before purchasing additional assets.
+9. Calculates the required buy and sell amounts.
+10. Rebalances the portfolio if automatic trading is enabled.
+11. Waits until the next update interval and repeats.
 
 ## Project Structure
 
@@ -114,6 +153,27 @@ Before enabling automatic trading:
 * Keep your seed secure.
 * Never commit your `.env` file to version control.
 
+# Safety Features
+
+The balancer includes several safeguards:
+
+* Configurable deviation threshold to reduce excessive trading.
+* Hard cap protection to prevent over-allocation.
+* Optional dry-run mode by setting `BALANCER_ACTIVE=False`.
+* Debug logging for monitoring calculations.
+* Secure credential storage using environment variables.
+
+# Best Practices
+
+Before enabling automatic trading:
+
+* Verify your wallet seed.
+* Test with small balances first.
+* Review the calculated trades.
+* Start with `BALANCER_ACTIVE=False` to observe behavior.
+* Keep your seed phrase secure.
+* Never commit your `.env` file to version control.
+  
 ## Contributing
 
 Contributions are welcome. Please open an issue or submit a pull request with improvements or bug fixes.
