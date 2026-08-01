@@ -1,5 +1,7 @@
 # DeSo Asset Balancer
 
+![Overview](d1c96da98519b772fc308410fd1bc8ae33e4c9fd673f050f1b5439e401b234b2.webp)
+
 An automated Python portfolio manager for the **DeSo** ecosystem that continuously monitors your wallet and rebalances your holdings across **DESO**, **USDC**, **FOCUS**, **OPENFUND**, and selected creator coins.
 
 The balancer calculates your current portfolio allocation, compares it to your configured targets, and automatically executes the required trades while respecting configurable safety limits.
