@@ -26,7 +26,7 @@ The balancer supports **DESO**, **USDC**, **FOCUS**, **OPENFUND**, and **creator
 
 ---
   
-# Supported Assets
+## Supported Assets
 
 | Asset         | Description                                                 |
 | ------------- | ----------------------------------------------------------- |
@@ -100,7 +100,7 @@ PRINT_DEBUG = False
 ```
 ---
 
-# Configuration Options
+## Configuration Options
 
 | Variable                | Description                                                                                                             |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -167,17 +167,23 @@ Before enabling automatic trading:
 * Keep your seed secure.
 * Never commit your `.env` file to version control.
 
+---
+
 # Safety Features
 
-The balancer includes several safeguards:
+The balancer includes several safeguards to reduce trading risk:
 
-* Configurable deviation threshold to reduce excessive trading.
-* Hard cap protection to prevent over-allocation.
-* Optional dry-run mode by setting `BALANCER_ACTIVE=False`.
-* Debug logging for monitoring calculations.
-* Secure credential storage using environment variables.
+* Configurable maximum slippage protection
+* Hard cap protection to prevent over-allocation
+* Minimum transaction size filtering
+* Deviation threshold to reduce unnecessary trades
+* Optional dry-run mode (`BALANCER_ACTIVE=False`)
+* Debug logging for trade calculations
+* Secure credential management using environment variables
 
-# Best Practices
+---
+
+## Best Practices
 
 Before enabling automatic trading:
 
@@ -191,6 +197,22 @@ Before enabling automatic trading:
 ## Contributing
 
 Contributions are welcome. Please open an issue or submit a pull request with improvements or bug fixes.
+
+# Disclaimer
+
+This software is provided **"as is"**, without any warranties or guarantees of any kind, whether express or implied.
+
+Cryptocurrency trading and investing involve significant financial risk. Market conditions, price volatility, liquidity, slippage, software bugs, network issues, or unexpected blockchain behavior may result in partial or complete loss of funds.
+
+By using this software, you acknowledge that:
+
+* You are solely responsible for all trades executed by the application.
+* You understand the risks associated with automated cryptocurrency trading.
+* You have tested the software and configured it appropriately for your use case.
+* You use this software entirely at your own risk.
+
+**The author(s) and contributors accept no liability for any financial losses, loss of funds, damages, or other consequences arising from the use or misuse of this software.** By using this project, you agree that all responsibility for its use rests solely with you.
+
 
 ## License
 
