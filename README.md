@@ -1,26 +1,30 @@
-# DeSo Asset Balancer
 
 ![Overview](d1c96da98519b772fc308410fd1bc8ae33e4c9fd673f050f1b5439e401b234b2.webp)
 
-An automated Python portfolio manager for the **DeSo** ecosystem that continuously monitors your wallet and rebalances your holdings across **DESO**, **USDC**, **FOCUS**, **OPENFUND**, and selected creator coins.
+An automated Python portfolio manager for the **DeSo** ecosystem that continuously monitors your wallet and rebalances your holdings according to your target allocation.
 
-The balancer calculates your current portfolio allocation, compares it to your configured targets, and automatically executes the required trades while respecting configurable safety limits.
+The balancer supports **DESO**, **USDC**, **FOCUS**, **OPENFUND**, and **creator coins**. Creator coin allocations are calculated as a percentage of your total **FOCUS** allocation, making it easy to maintain a diversified creator coin portfolio.
 
-# Features
+## Features
 
-* Automatic portfolio rebalancing
+* Automatic portfolio monitoring and rebalancing
 * Supports **DESO**, **USDC**, **FOCUS**, and **OPENFUND**
-* Creator coin allocation based on FOCUS.
+* Automatic creator coin allocation based on your FOCUS allocation
 * Configurable target portfolio percentages
+* Configurable creator coin weights
 * Automatic buy and sell order calculation
-* Continuous monitoring with configurable update intervals
-* Configurable deviation threshold to avoid unnecessary trades
+* Configurable portfolio check interval
+* Maximum slippage protection
 * Hard cap protection to prevent excessive purchases
+* Minimum transaction amount to avoid unnecessary fees
+* Configurable deviation threshold to reduce excessive trading
 * Optional automatic trading mode
 * Dry-run mode by disabling automatic execution
-* Detailed debug logging
+* Debug logging
 * Secure configuration using environment variables
-* Designed for unattended long-running execution
+* Designed for long-running unattended execution
+
+---
   
 # Supported Assets
 
@@ -94,21 +98,25 @@ MIN_TRANSACTION = 0.01 # to avoid very small $ value transactions and fees
 BALANCER_ACTIVE = True # Enable or disable automatic trading
 PRINT_DEBUG = False
 ```
-## Configuration Options
+---
 
-| Variable                | Description                                                                |
-| ----------------------- | -------------------------------------------------------------------------- |
-| `DESO_SEED`             | Your DeSo wallet seed phrase                                               |
-| `NODE`                  | DeSo node endpoint                                                         |
-| `UPDATE_INTERVAL`       | Time between portfolio checks (seconds)                                    |
-| `DESO_PERCENTAGE`       | Target percentage allocated to DESO                                        |
-| `FOCUS_PERCENTAGE`      | Target percentage allocated to FOCUS                                       |
-| `OPENFUND_PERCENTAGE`   | Target percentage allocated to OPENFUND                                    |
-| `HARD_CAP`              | Maximum value allowed for an asset before additional purchases are blocked |
-| `DEVIATION`             | Minimum allocation difference required before trading                      |
-| `TOKENS_BASED_ON_FOCUS` | All the Creator coins details (paired with FOCUS)              |
-| `BALANCER_ACTIVE`       | Enables or disables automatic trading                                      |
-| `PRINT_DEBUG`           | Enables detailed logging                                                   |
+# Configuration Options
+
+| Variable                | Description                                                                                                             |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `DESO_SEED`             | Your DeSo wallet seed phrase.                                                                                           |
+| `NODE`                  | DeSo node endpoint used for blockchain communication.                                                                   |
+| `UPDATE_INTERVAL`       | Time between portfolio checks (seconds).                                                                                |
+| `DESO_PERCENTAGE`       | Target portfolio allocation for DESO.                                                                                   |
+| `FOCUS_PERCENTAGE`      | Target portfolio allocation for FOCUS.                                                                                  |
+| `OPENFUND_PERCENTAGE`   | Target portfolio allocation for OPENFUND.                                                                               |
+| `TOKENS_BASED_ON_FOCUS` | List of creator coins paired with FOCUS allocation.                                |
+| `MAX_SLIPPAGE`          | Maximum acceptable slippage when executing trades. Trades exceeding this value are skipped.                             |
+| `HARD_CAP`              | Maximum USD value allowed for an asset before additional purchases are blocked.                                         |
+| `DEVIATION`             | Minimum allocation difference (%) required before a rebalance is triggered.                                             |
+| `MIN_TRANSACTION`       | Minimum trade value (USD) to avoid executing very small transactions.                                                   |
+| `BALANCER_ACTIVE`       | Enables or disables automatic trade execution. When `False`, the balancer performs calculations without placing trades. |
+| `PRINT_DEBUG`           | Enables detailed debug logging.                                                                                         |
 
 ---
 ## Usage
