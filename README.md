@@ -87,6 +87,8 @@ OPENFUND_PERCENTAGE=6.2
 
 HARD_CAP = 30 # Maximum allowed asset $ value; prevents purchases above this limit.
 DEVIATION = 5   # Ignore price changes smaller than this percentage to prevent unnecessary BUY/SELL orders.
+MIN_TRANSACTION = 0.01 # to avoid very small $ value transactions and fees
+
 TOKENS_BASED_ON_FOCUS = [{"name":"Kaanha","pubkey":"BC1YLhvxVMEUp5y8zpq17VaRE264JX4r4T4XU4Ff8NJ4MrchkGDq4q3","target_percentage":42},{"name":"Arnoud","pubkey":"BC1YLgBND6GqfWYb8HyY3hAm2UpT8aeFv2fX41sMPAu7uuVjuSQtDju","target_percentage":3},{"name":"SeanSlater","pubkey":"BC1YLirtb7CjNwVmWEt7t1487Qpo4LoPBDEGvfqYwXXZcj2dDLNMBVU","target_percentage":3},{"name":"Ryleesnet","pubkey":"BC1YLijd5XEneHzVd5VFb2mgdNkRpPneNWY6fKJ3ptBVJ5guqAnPSke","target_percentage":3}]
 
 BALANCER_ACTIVE = True # Enable or disable automatic trading
