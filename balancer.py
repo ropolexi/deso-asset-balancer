@@ -41,7 +41,7 @@ tokens_data = json.loads(os.getenv("TOKENS_BASED_ON_FOCUS","[]"))
 balancer_active=bool(os.getenv("BALANCER_ACTIVE", "False").lower() == "true")
 print_debug=bool(os.getenv("PRINT_DEBUG", "False").lower() == "true")
 deviation=Decimal(os.getenv("DEVIATION",5))
-min_transaction = Decimal(os.getenv("MIN_TRANSACTION",0.01)) # to avoid very small $ value transactions,fees
+min_transaction = Decimal(os.getenv("MIN_TRANSACTION","0.01")) # to avoid very small $ value transactions,fees
 
 print("=" * 50)
 print("DESO Asset Balancer")
