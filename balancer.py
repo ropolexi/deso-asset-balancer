@@ -3,11 +3,19 @@ import time
 import os
 import json
 from dotenv import load_dotenv
+import logging
+
 
 __author__ = "NimalYas"
 __version__ = "1.0.1"
 __last_modified__ = "2026-08-02"
 
+# Configure logging
+logging.basicConfig(
+    filename="balancer.log",
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 deso_pubkey="DESO"
 focus_pubkey="BC1YLjEayZDjAPitJJX4Boy7LsEfN3sWAkYb3hgE9kGBirztsc2re1N"
@@ -40,6 +48,11 @@ print(f"Version        : {__version__}")
 print(f"Last Modified  : {__last_modified__}")
 print("=" * 50)
 print()
+logging.info(f"DESO Asset Balancer - Version  : {__version__}")
+logging.info(f"{'Balancer Active':<20}: {balancer_active}")
+logging.info(f"{'Node':<20}: {node}")
+logging.info(f"{'Trigger Deviation':<20}: {deviation} %")
+logging.info(f"{'Hard Limit':<20}: $ {hard_cap}")
 
 print(f"{'Balancer Active':<20}: {balancer_active}")
 print(f"{'Node':<20}: {node}")
@@ -148,10 +161,12 @@ def place_limit_order(user_public_key,operation, base_currency, quote_currency, 
         signed_response = deso.sign_and_submit_txn(response)
         txn_hash = signed_response['TxnHashHex']
         print(f"Order placed successfully! Transaction hash: {txn_hash}")
+        logging.debug(f"Order placed successfully! -  user_public_key:{user_public_key}, operation:{operation}, base_currency:{base_currency}, quote_currency:{quote_currency}, price:{price}, quantity:{quantity}, txn_hash:{txn_hash}")
 
         return True
     except Exception as e:
         print(f"Error placing order {e}")
+        logging.error(f"Order placing failed! - {e}")
         return False
 
 while True:
@@ -216,7 +231,8 @@ while True:
     for token in tokens_based_on_focus:
         token["current_perc"] = 100 * token["balance_usd"]/total_balance
   
-    print(f"\nTotal_balance:${total_balance:.2f}")
+    print(f"\nTotal Balance:${total_balance:.2f}")
+    logging.info(f"Total Balance:${total_balance:.2f}")
     
     #balance_per_asset = total_balance/4
     deso_target_balance = total_balance * deso_perc /100
