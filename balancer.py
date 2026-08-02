@@ -38,8 +38,8 @@ focus_perc=Decimal(os.getenv("FOCUS_PERCENTAGE",10))
 openfund_perc=Decimal(os.getenv("OPENFUND_PERCENTAGE",10))
 
 tokens_data = json.loads(os.getenv("TOKENS_BASED_ON_FOCUS","[]"))
-balancer_active=bool(os.getenv("BALANCER_ACTIVE", "False").lower() == "true")
-print_debug=bool(os.getenv("PRINT_DEBUG", "False").lower() == "true")
+balancer_active=bool(os.getenv("BALANCER_ACTIVE", "False").strip().lower() == "true")
+print_debug=bool(os.getenv("PRINT_DEBUG", "False").strip().lower() == "true")
 deviation=Decimal(os.getenv("DEVIATION",5))
 min_transaction = Decimal(os.getenv("MIN_TRANSACTION","0.01")) # to avoid very small $ value transactions,fees
 max_slippage = Decimal(os.getenv("MAX_SLIPPAGE","0.01")) # Maximum acceptable slippage to avoid buying or selling at unfavorable prices.
@@ -55,7 +55,10 @@ for token in tokens_data:
         raise ValueError(f"Invalid pubkey:{token}")
     if len(token["pubkey"])!=55:
         raise ValueError(f"Invalid Pubkey:{token}")
-    
+    if token["pubkey"] in seen_pubkeys:
+        raise ValueError(f"Duplicate pubkey: {token}")
+    seen_pubkeys.add(token["pubkey"])
+
     if not isinstance(token.get("target_percentage"),(int,float,str)):
         raise ValueError(f"Invalid target percentage:{token}")
     try:
@@ -200,17 +203,17 @@ def place_limit_order(user_public_key,operation, base_currency, quote_currency, 
 
             signed_response = deso.sign_and_submit_txn(response)
             txn_hash = signed_response['TxnHashHex']
-            print(f"Order placed successfully! -  operation:{operation}, price:{price}, quantity:{quantity} {unit}")
-            logging.debug(f"Order placed successfully! -  user_public_key:{user_public_key}, operation:{operation}, base_currency:{base_currency}, quote_currency:{quote_currency}, price:{price} , quantity:{quantity} {unit}, txn_hash:{txn_hash}")
+            print(f"Order placed successfully! -  operation:{operation}, price:{price} {unit}, quantity:{quantity} {unit}")
+            logging.debug(f"Order placed successfully! -  user_public_key:{user_public_key}, operation:{operation}, base_currency:{base_currency}, quote_currency:{quote_currency}, price:{price} {unit}, quantity:{quantity} {unit}, txn_hash:{txn_hash}")
         else:
             
-            logging.debug(f"Dry Run - operation:{operation}, price:{price}, quantity:{quantity} {unit}")
+            logging.debug(f"Dry Run - operation:{operation}, price:{price} {unit}, quantity:{quantity} {unit}")
             
-            print(f"Dry Run - operation:{operation}, price:{price}, quantity:{quantity} {unit}")
+            print(f"Dry Run - operation:{operation}, price:{price} {unit}, quantity:{quantity} {unit}")
         return True
     except Exception as e:
         print(f"Error placing order!")
-        logging.error(f"Order placing failed! - operation:{operation}, price:{price}, quantity:{quantity} {unit} -  {e}")
+        logging.error(f"Order placing failed! - operation:{operation}, price:{price} {unit}, quantity:{quantity} {unit} -  {e}")
         return False
 
 while True:
