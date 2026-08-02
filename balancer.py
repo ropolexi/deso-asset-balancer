@@ -5,7 +5,7 @@ import json
 from dotenv import load_dotenv
 
 __author__ = "NimalYas"
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __last_modified__ = "2026-08-02"
 
 
@@ -85,19 +85,19 @@ def get_exchange_rate(data,quote_currency,base_currency_selected):
     asks_1 = [(1.0/float(order['ExchangeRateCoinsToSellPerCoinToBuy']), float(order['QuantityToFill']),order['TransactorPublicKeyBase58Check']) for order in orders if (order['OperationType'] == 'BID' and order['BuyingDAOCoinCreatorPublicKeyBase58Check']==quote_currency)]
     asks_2 = [(1.0/float(order['ExchangeRateCoinsToSellPerCoinToBuy']), float(order['QuantityToFill'])*(1.0/float(order['ExchangeRateCoinsToSellPerCoinToBuy'])),order['TransactorPublicKeyBase58Check']) for order in orders if (order['OperationType'] == 'ASK' and order['SellingDAOCoinCreatorPublicKeyBase58Check']==base_currency_selected)]
     asks = asks_1+asks_2
-    if bids is not None:
+    if len(bids)>0:
         best_bid_price, best_bid_quantity,best_bid_trasactor = max(bids)
     else:
         best_bid_price=0
 
-    if asks is not None:
+    if len(asks)>0:
         best_ask_price, best_ask_quantity,best_ask_trasactor = min(asks)
     else:
          best_ask_price=0
 
     if print_debug:
         print(f"best_bid_price:{best_bid_price},best_ask_price:{best_ask_price}")
-    if best_ask_price!=0 and best_bid_price:
+    if best_ask_price!=0 and best_bid_price!=0:
         exchange_rate=(float(best_bid_price)+float(best_ask_price))/2
     else:
         exchange_rate=0
@@ -193,12 +193,12 @@ while True:
     print("="*90)
     print(f"{'Name':<20} |  {'BID':<10}    |  {'ASK':<10}    | {'Middle':<10}       |   {'Middle USD':<10}")
     print("="*90)
-    print(f"{'deso:':<20} | BID {deso_best_bid:10f} | ASK {deso_best_ask:10f} | USDC  {deso_exchange_rate:10f} | {deso_exchange_rate:10f} USDC")
-    print(f"{'focus:':<20} | BID {focus_best_bid:10f} | ASK {focus_best_ask:10f} | DESO  {focus_exchange_rate:10f} | {deso_exchange_rate*focus_exchange_rate:10f} USDC")
-    print(f"{'openfund:':<20} | BID {openfund_best_bid:10f} | ASK {openfund_best_ask:10f} | DESO  {openfund_exchange_rate:10f} | {deso_exchange_rate*openfund_exchange_rate:10f} USDC")
+    print(f"{'deso':<20} | BID {deso_best_bid:10f} | ASK {deso_best_ask:10f} | {deso_exchange_rate:10f} USDC  | {deso_exchange_rate:10f} USDC")
+    print(f"{'focus':<20} | BID {focus_best_bid:10f} | ASK {focus_best_ask:10f} | {focus_exchange_rate:10f} DESO  | {deso_exchange_rate*focus_exchange_rate:10f} USDC")
+    print(f"{'openfund':<20} | BID {openfund_best_bid:10f} | ASK {openfund_best_ask:10f} | {openfund_exchange_rate:10f} DESO  | {deso_exchange_rate*openfund_exchange_rate:10f} USDC")
     for token in tokens_based_on_focus:
         label = token['name']
-        print(f"{label:<20} | BID {token['best_bid']:10f} | ASK {token['best_ask']:10f} | FOCUS {token['exchange_rate']:10f} | {deso_exchange_rate*focus_exchange_rate*token['exchange_rate']:10f} USDC")
+        print(f"{label:<20} | BID {token['best_bid']:10f} | ASK {token['best_ask']:10f} | {token['exchange_rate']:10f} FOCUS | {deso_exchange_rate*focus_exchange_rate*token['exchange_rate']:10f} USDC")
     print("="*90)
 
     #get user balance
@@ -243,8 +243,8 @@ while True:
         if print_debug:print("\nBalancing..")
         for token in tokens_based_on_focus:
             if print_debug:print(f"{token['name']}..") 
-            if token["best_bid"]==0: #no buyers
-                continue
+            # if token["best_bid"]==0: #no buyers
+            #     continue
             if token['balance_usd']>token['target_balance_usd']*(1+deviation/100):
                 sell_amount=round(token['balance_usd']-token['target_balance_usd'],4)
                 print(f"Selling {token['name']}:${sell_amount}")
