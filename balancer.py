@@ -65,12 +65,26 @@ print(f"{'Hard Limit Per Asset':<20}: $ {hard_cap}")
 print(f"{'Minimum Transaction':<20}: $ {min_transaction}")
 
 tokens_based_on_focus=[]
+seen_pubkeys = set()
 
 for token in tokens_data:
-    assert isinstance(token.get("pubkey"),str),f"Invalid pubkey:{token}"
-    assert isinstance(token.get("target_percentage"),(int,float,str)),f"Invalid target_percentage:{token}"
-    perc = Decimal(str(token["target_percentage"]))
-    assert Decimal("0") < perc < Decimal("100"),f"Invalid percentage range: {token}"
+    if "name" not in token or not isinstance(token["name"],str):
+        raise ValueError(f"Invalid or missing name:{token}")
+                         
+    if not isinstance(token.get("pubkey"),str):
+        raise ValueError(f"Invalid pubkey:{token}")
+    if len(token["pubkey"])!=55:
+        raise ValueError(f"Invalid Pubkey:{token}")
+    
+    if not isinstance(token.get("target_percentage"),(int,float,str)):
+        raise ValueError(f"Invalid target percentage:{token}")
+    try:
+        perc = Decimal(str(token["target_percentage"]))
+    except Exception:
+        raise ValueError("Invalid percentage conversion")
+    
+    if not (Decimal("0") < perc < Decimal("100")):
+        raise ValueError(f"Invalid percentage range: {token}")
     tokens_based_on_focus.append(
         {
             "name":token["name"],
@@ -78,7 +92,7 @@ for token in tokens_data:
             "exchange_rate":ZERO,
             "tokens_qty":ZERO,
             "balance_usd":ZERO,
-            "target_percentage":Decimal(str(token["target_percentage"])),
+            "target_percentage":perc,
             "current_perc":ZERO,
             "best_bid":ZERO,
             "best_ask":ZERO
@@ -445,7 +459,7 @@ while True:
         else:
             print(f"\nsleep 10 seconds")
             time.sleep(10)
-            
+
     except Exception as e:
         print(f"Error! {e}")
         print(f"Sleeping for 60 seconds")
