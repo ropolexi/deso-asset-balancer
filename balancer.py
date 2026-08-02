@@ -7,9 +7,10 @@ import logging
 from decimal import Decimal,getcontext,ROUND_DOWN
 
 getcontext().prec=28
+ZERO = Decimal("0")
 
 __author__ = "NimalYas"
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 __last_modified__ = "2026-08-02"
 
 # Configure logging
@@ -65,13 +66,13 @@ tokens_based_on_focus = [
     {
         "name":token["name"],
         "pubkey":token["pubkey"],
-        "exchange_rate":0,
-        "tokens_qty":0,
-        "balance_usd":0,
-        "target_percentage":token["target_percentage"],
-        "current_perc":0,
-        "best_bid":0,
-        "best_ask":0
+        "exchange_rate":ZERO,
+        "tokens_qty":ZERO,
+        "balance_usd":ZERO,
+        "target_percentage":Decimal(str(token["target_percentage"])),
+        "current_perc":ZERO,
+        "best_bid":ZERO,
+        "best_ask":ZERO
     } for token in tokens_data
 ]
 
@@ -87,6 +88,9 @@ print(f"{'USDC %':<20}: {(Decimal('100')-total_perc):.1f} %")
 deso = DeSoDexClient(is_testnet=False,seed_phrase_or_hex=deso_seed,node_url=node)
 user_public_key=base58_check_encode(deso.deso_keypair.public_key, False)
 
+def safe_div(a,b):
+    return a/b if b!=0 else Decimal("0")
+
 def get_exchange_rate(data,quote_currency,base_currency_selected):    
     orders=data["Orders"]
 
@@ -96,25 +100,25 @@ def get_exchange_rate(data,quote_currency,base_currency_selected):
     bids_1 = [(Decimal(order['ExchangeRateCoinsToSellPerCoinToBuy']), Decimal(order['QuantityToFill'])*Decimal(order['ExchangeRateCoinsToSellPerCoinToBuy']),order['TransactorPublicKeyBase58Check']) for order in orders if (order['OperationType'] == 'BID' and order['BuyingDAOCoinCreatorPublicKeyBase58Check']==base_currency_selected)]
     bids_2 = [(Decimal(order['ExchangeRateCoinsToSellPerCoinToBuy']), Decimal(order['QuantityToFill']),order['TransactorPublicKeyBase58Check']) for order in orders if (order['OperationType'] == 'ASK' and order['SellingDAOCoinCreatorPublicKeyBase58Check']==quote_currency)]
     bids = bids_1 + bids_2
-    asks_1 = [(Decimal("1")/Decimal(order['ExchangeRateCoinsToSellPerCoinToBuy']), Decimal(order['QuantityToFill']),order['TransactorPublicKeyBase58Check']) for order in orders if (order['OperationType'] == 'BID' and order['BuyingDAOCoinCreatorPublicKeyBase58Check']==quote_currency)]
-    asks_2 = [(Decimal("1")/Decimal(order['ExchangeRateCoinsToSellPerCoinToBuy']), Decimal(order['QuantityToFill'])*(Decimal("1")/Decimal(order['ExchangeRateCoinsToSellPerCoinToBuy'])),order['TransactorPublicKeyBase58Check']) for order in orders if (order['OperationType'] == 'ASK' and order['SellingDAOCoinCreatorPublicKeyBase58Check']==base_currency_selected)]
+    asks_1 = [(safe_div(Decimal("1"),Decimal(order['ExchangeRateCoinsToSellPerCoinToBuy'])), Decimal(order['QuantityToFill']),order['TransactorPublicKeyBase58Check']) for order in orders if (order['OperationType'] == 'BID' and order['BuyingDAOCoinCreatorPublicKeyBase58Check']==quote_currency)]
+    asks_2 = [(safe_div(Decimal("1"),Decimal(order['ExchangeRateCoinsToSellPerCoinToBuy'])), Decimal(order['QuantityToFill'])*safe_div(Decimal("1"),Decimal(order['ExchangeRateCoinsToSellPerCoinToBuy'])),order['TransactorPublicKeyBase58Check']) for order in orders if (order['OperationType'] == 'ASK' and order['SellingDAOCoinCreatorPublicKeyBase58Check']==base_currency_selected)]
     asks = asks_1+asks_2
     if len(bids)>0:
         best_bid_price, best_bid_quantity,best_bid_trasactor = max(bids)
     else:
-        best_bid_price=0
+        best_bid_price=ZERO
 
     if len(asks)>0:
         best_ask_price, best_ask_quantity,best_ask_trasactor = min(asks)
     else:
-         best_ask_price=0
+         best_ask_price=ZERO
 
     if print_debug:
         print(f"best_bid_price:{best_bid_price},best_ask_price:{best_ask_price}")
-    if best_ask_price!=0 and best_bid_price!=0:
+    if best_ask_price!=ZERO and best_bid_price!=ZERO:
         exchange_rate=(Decimal(best_bid_price)+Decimal(best_ask_price))/Decimal("2")
     else:
-        exchange_rate=0
+        exchange_rate=ZERO
 
     return exchange_rate,best_bid_price,best_ask_price
 
@@ -237,12 +241,12 @@ while True:
     for token in tokens_based_on_focus:
         total_balance = total_balance + token["balance_usd"]
 
-    current_deso_balance_perc = Decimal("100") * deso_balance_usd/total_balance
-    current_usdc_coins_perc = Decimal("100") * usdc_coins/total_balance
-    current_focus_balance_usd_perc = Decimal("100") * focus_balance_usd/total_balance
-    current_openfund_balance_usd_perc = Decimal("100") * openfund_balance_usd/total_balance
+    current_deso_balance_perc = Decimal("100") * safe_div(deso_balance_usd,total_balance)
+    current_usdc_coins_perc = Decimal("100") * safe_div(usdc_coins,total_balance)
+    current_focus_balance_usd_perc = Decimal("100") * safe_div(focus_balance_usd,total_balance)
+    current_openfund_balance_usd_perc = Decimal("100") * safe_div(openfund_balance_usd,total_balance)
     for token in tokens_based_on_focus:
-        token["current_perc"] = Decimal("100") * token["balance_usd"]/total_balance
+        token["current_perc"] = Decimal("100") * safe_div(token["balance_usd"],total_balance)
   
     print(f"\nTotal Balance:${total_balance:.2f}")
     logging.info(f"Total Balance:${total_balance:.2f}")
@@ -278,7 +282,7 @@ while True:
         if token['balance_usd']>token['target_balance_usd']*(Decimal("1")+deviation/Decimal("100")):
             sell_amount=token['balance_usd']-token['target_balance_usd']
             print(f"Selling {token['name']}:${sell_amount}")
-            qty = (sell_amount/deso_best_bid)/focus_best_bid
+            qty = safe_div(sell_amount,(deso_best_bid*focus_best_bid))
             if place_limit_order(user_public_key,"ASK", token["pubkey"], focus_pubkey, 0, qty,balancer_active):
                     token['balance_usd'] = token['balance_usd'] - sell_amount
                     focus_balance_usd = focus_balance_usd + sell_amount
@@ -296,20 +300,23 @@ while True:
                     else:
                         print("Not enough usdc!")
 
-                print(f"Buying focus:${buy_amount}")    
-                if place_limit_order(user_public_key,"BID", focus_pubkey, deso_pubkey, 0, buy_amount/deso_best_ask,balancer_active):
+                print(f"Buying focus:${buy_amount}")  
+                qty = safe_div(buy_amount,deso_best_ask)  
+                if place_limit_order(user_public_key,"BID", focus_pubkey, deso_pubkey, 0, qty,balancer_active):
                         focus_balance_usd = focus_balance_usd + buy_amount
                         deso_balance_usd = deso_balance_usd - buy_amount
 
             print(f"Buying {token['name']}:${buy_amount}")
-            if place_limit_order(user_public_key,"BID",token["pubkey"], focus_pubkey,  0, (buy_amount/deso_best_ask)/focus_best_ask,balancer_active):
+            qty = safe_div(buy_amount,(deso_best_ask*focus_best_ask))
+            if place_limit_order(user_public_key,"BID",token["pubkey"], focus_pubkey,  0, qty ,balancer_active):
                     token['balance_usd'] = token['balance_usd'] + buy_amount
                     focus_balance_usd = focus_balance_usd - buy_amount
     if print_debug:print("Openfund..")
     if openfund_balance_usd>openfund_target_balance*(1+deviation/Decimal("100")):
         sell_amount=openfund_balance_usd-openfund_target_balance
         print(f"Selling openfund:${sell_amount}")
-        if place_limit_order(user_public_key,"ASK", openfund_pubkey, deso_pubkey, 0, sell_amount/deso_best_bid,balancer_active):
+        qty = safe_div(sell_amount,deso_best_bid)
+        if place_limit_order(user_public_key,"ASK", openfund_pubkey, deso_pubkey, 0, qty,balancer_active):
             openfund_balance_usd = openfund_balance_usd - sell_amount
             deso_balance_usd = deso_balance_usd + sell_amount
         
@@ -323,7 +330,8 @@ while True:
                     usdc_coins = usdc_coins - buy_amount
         
         print(f"Buying openfund:${buy_amount}")
-        if place_limit_order(user_public_key,"BID", openfund_pubkey, deso_pubkey, 0, buy_amount/deso_best_ask,balancer_active):
+        qty = safe_div(buy_amount,deso_best_ask)
+        if place_limit_order(user_public_key,"BID", openfund_pubkey, deso_pubkey, 0, qty,balancer_active):
                 openfund_balance_usd = openfund_balance_usd + buy_amount
                 deso_balance_usd = deso_balance_usd - buy_amount
 
@@ -331,7 +339,7 @@ while True:
     if focus_balance_usd>focus_target_balance*(Decimal("1")+deviation/Decimal("100")):
         sell_amount=focus_balance_usd-focus_target_balance
         print(f"Selling focus:${sell_amount}")
-        qty = sell_amount/deso_best_bid
+        qty = safe_div(sell_amount,deso_best_bid)
         if place_limit_order(user_public_key,"ASK", focus_pubkey, deso_pubkey, 0,qty,balancer_active ):
             focus_balance_usd = focus_balance_usd - sell_amount
             deso_balance_usd = deso_balance_usd + sell_amount
@@ -348,7 +356,8 @@ while True:
                 print("Not enough usdc!")
             
         print(f"Buying focus:${buy_amount}")
-        if place_limit_order(user_public_key,"BID", focus_pubkey, deso_pubkey, 0, buy_amount/deso_best_ask,balancer_active):
+        qty = safe_div(buy_amount,deso_best_ask)
+        if place_limit_order(user_public_key,"BID", focus_pubkey, deso_pubkey, 0, qty ,balancer_active):
                 focus_balance_usd = focus_balance_usd + buy_amount
                 deso_balance_usd = deso_balance_usd - buy_amount
     if print_debug:print("Deso..")        
