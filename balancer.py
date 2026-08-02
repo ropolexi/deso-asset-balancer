@@ -348,6 +348,12 @@ while True:
             if print_debug:print(f"{token['name']}..") 
             if token["best_bid"]==0: #no buyers
                 continue
+            spread = (token["best_ask"]-token["best_bid"])/token["best_bid"]
+            print(f"Token:{token['name']} , Spread:{spread*100:3.1f}%")
+            if spread > max_slippage:
+                print("Spread is greater than max slippage")
+                continue
+                
             if token['balance_usd']>token['target_balance_usd']*(Decimal("1")+deviation/Decimal("100")):
                 sell_amount=token['balance_usd']-token['target_balance_usd']
                 if sell_amount >= min_transaction:
@@ -389,83 +395,98 @@ while True:
                             token['balance_usd'] = token['balance_usd'] + buy_amount
                             focus_balance_usd = focus_balance_usd - buy_amount
         if print_debug:print("Openfund..")
-        if openfund_balance_usd>openfund_target_balance*(Decimal("1")+deviation/Decimal("100")):
-            sell_amount=openfund_balance_usd-openfund_target_balance
-            if sell_amount >= min_transaction:
-                print(f"Selling openfund:${sell_amount}")
-                qty = safe_div(sell_amount,deso_best_bid)
-                price = openfund_best_bid * (Decimal("1")-max_slippage)
-                if place_limit_order(user_public_key,"ASK", openfund_pubkey, deso_pubkey, price, qty,balancer_active):
-                    openfund_balance_usd = openfund_balance_usd - sell_amount
-                    deso_balance_usd = deso_balance_usd + sell_amount
-            
-        if openfund_balance_usd<openfund_target_balance*(Decimal("1")-deviation/Decimal("100")) and openfund_balance_usd < hard_cap:
-            buy_amount = min(openfund_target_balance,hard_cap)-openfund_balance_usd 
-            if buy_amount >= min_transaction:
-                if deso_balance_usd<buy_amount:# deso balance low
-                    if(usdc_coins>buy_amount):#buy from usdc
-                        print(f"Buying deso:${buy_amount}")
-                        price = deso_best_ask * (Decimal("1")+max_slippage)
-                        if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, price, buy_amount,balancer_active):
-                            deso_balance_usd = deso_balance_usd + buy_amount
-                            usdc_coins = usdc_coins - buy_amount
+        spread = (openfund_best_ask-openfund_best_bid)/openfund_best_bid
+        print(f"Token:openfund , Spread:{spread*100:3.1f}%")
+        if spread > max_slippage:
+            print("Spread is greater than max slippage")
+        else:
+            if openfund_balance_usd>openfund_target_balance*(Decimal("1")+deviation/Decimal("100")):
+                sell_amount=openfund_balance_usd-openfund_target_balance
+                if sell_amount >= min_transaction:
+                    print(f"Selling openfund:${sell_amount}")
+                    qty = safe_div(sell_amount,deso_best_bid)
+                    price = openfund_best_bid * (Decimal("1")-max_slippage)
+                    if place_limit_order(user_public_key,"ASK", openfund_pubkey, deso_pubkey, price, qty,balancer_active):
+                        openfund_balance_usd = openfund_balance_usd - sell_amount
+                        deso_balance_usd = deso_balance_usd + sell_amount
                 
-                print(f"Buying openfund:${buy_amount}")
-                qty = safe_div(buy_amount,deso_best_ask)
-                price = openfund_best_ask * (Decimal("1")+max_slippage)
-                if place_limit_order(user_public_key,"BID", openfund_pubkey, deso_pubkey, price, qty,balancer_active):
-                        openfund_balance_usd = openfund_balance_usd + buy_amount
-                        deso_balance_usd = deso_balance_usd - buy_amount
+            if openfund_balance_usd<openfund_target_balance*(Decimal("1")-deviation/Decimal("100")) and openfund_balance_usd < hard_cap:
+                buy_amount = min(openfund_target_balance,hard_cap)-openfund_balance_usd 
+                if buy_amount >= min_transaction:
+                    if deso_balance_usd<buy_amount:# deso balance low
+                        if(usdc_coins>buy_amount):#buy from usdc
+                            print(f"Buying deso:${buy_amount}")
+                            price = deso_best_ask * (Decimal("1")+max_slippage)
+                            if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, price, buy_amount,balancer_active):
+                                deso_balance_usd = deso_balance_usd + buy_amount
+                                usdc_coins = usdc_coins - buy_amount
+                    
+                    print(f"Buying openfund:${buy_amount}")
+                    qty = safe_div(buy_amount,deso_best_ask)
+                    price = openfund_best_ask * (Decimal("1")+max_slippage)
+                    if place_limit_order(user_public_key,"BID", openfund_pubkey, deso_pubkey, price, qty,balancer_active):
+                            openfund_balance_usd = openfund_balance_usd + buy_amount
+                            deso_balance_usd = deso_balance_usd - buy_amount
 
         if print_debug:print("Focus..")
-        if focus_balance_usd>focus_target_balance*(Decimal("1")+deviation/Decimal("100")):
-            sell_amount=focus_balance_usd-focus_target_balance
-            if sell_amount>=min_transaction:
-                print(f"Selling focus:${sell_amount}")
-                qty = safe_div(sell_amount,deso_best_bid)
-                price = focus_best_bid * (Decimal("1")-max_slippage)
-                if place_limit_order(user_public_key,"ASK", focus_pubkey, deso_pubkey, price,qty,balancer_active ):
-                    focus_balance_usd = focus_balance_usd - sell_amount
-                    deso_balance_usd = deso_balance_usd + sell_amount
-            
-        if focus_balance_usd<focus_target_balance*(Decimal("1")-deviation/Decimal("100")) and focus_balance_usd<hard_cap:
-            buy_amount = min(focus_target_balance,hard_cap)-focus_balance_usd 
-            if buy_amount >= min_transaction:
-                if deso_balance_usd<buy_amount:#buy deso
-                    if(usdc_coins>buy_amount):#buy from usdc
-                        print(f"Buying deso:${buy_amount}")
-                        price = deso_best_ask * (Decimal("1")+max_slippage)
-                        if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, price, buy_amount,balancer_active):
+        spread = (focus_best_ask-focus_best_bid)/focus_best_bid
+        print(f"Token:focus , Spread:{spread*100:3.1f}%")
+        if spread > max_slippage:
+            print("Spread is greater than max slippage")
+        else:
+            if focus_balance_usd>focus_target_balance*(Decimal("1")+deviation/Decimal("100")):
+                sell_amount=focus_balance_usd-focus_target_balance
+                if sell_amount>=min_transaction:
+                    print(f"Selling focus:${sell_amount}")
+                    qty = safe_div(sell_amount,deso_best_bid)
+                    price = focus_best_bid * (Decimal("1")-max_slippage)
+                    if place_limit_order(user_public_key,"ASK", focus_pubkey, deso_pubkey, price,qty,balancer_active ):
+                        focus_balance_usd = focus_balance_usd - sell_amount
+                        deso_balance_usd = deso_balance_usd + sell_amount
+                
+            if focus_balance_usd<focus_target_balance*(Decimal("1")-deviation/Decimal("100")) and focus_balance_usd<hard_cap:
+                buy_amount = min(focus_target_balance,hard_cap)-focus_balance_usd 
+                if buy_amount >= min_transaction:
+                    if deso_balance_usd<buy_amount:#buy deso
+                        if(usdc_coins>buy_amount):#buy from usdc
+                            print(f"Buying deso:${buy_amount}")
+                            price = deso_best_ask * (Decimal("1")+max_slippage)
+                            if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, price, buy_amount,balancer_active):
+                                deso_balance_usd = deso_balance_usd + buy_amount
+                                usdc_coins = usdc_coins - buy_amount
+                        else:
+                            print("Not enough usdc!")
+                        
+                    print(f"Buying focus:${buy_amount}")
+                    qty = safe_div(buy_amount,deso_best_ask)
+                    price = focus_best_ask * (Decimal("1")+max_slippage)
+                    if place_limit_order(user_public_key,"BID", focus_pubkey, deso_pubkey,price, qty ,balancer_active):
+                            focus_balance_usd = focus_balance_usd + buy_amount
+                            deso_balance_usd = deso_balance_usd - buy_amount
+        if print_debug:print("Deso..")   
+        spread = (deso_best_ask-deso_best_bid)/deso_best_bid
+        print(f"Token:deso , Spread:{spread*100:3.1f}%")
+        if spread > max_slippage:
+            print("Spread is greater than max slippage")
+        else:     
+            if deso_balance_usd>deso_target_balance*(Decimal("1")+deviation/Decimal("100")):
+                sell_amount=deso_balance_usd-deso_target_balance
+                if sell_amount>=min_transaction:
+                    print(f"Selling deso:${sell_amount}")
+                    price = deso_best_bid * (Decimal("1")-max_slippage)
+                    if place_limit_order(user_public_key,"ASK", deso_pubkey, usdc_pubkey, price, sell_amount,balancer_active):
+                            deso_balance_usd = deso_balance_usd - sell_amount
+                            usdc_coins = usdc_coins + sell_amount
+
+            if deso_balance_usd<deso_target_balance*(Decimal("1")-deviation/Decimal("100")) and deso_balance_usd<hard_cap:
+                buy_amount = min(deso_target_balance,hard_cap)-deso_balance_usd 
+                if buy_amount >= min_transaction:
+                    print(f"Buying deso:${buy_amount}")
+                    price = deso_best_ask * (Decimal("1")+max_slippage)
+                    if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, price, buy_amount,balancer_active):
                             deso_balance_usd = deso_balance_usd + buy_amount
                             usdc_coins = usdc_coins - buy_amount
-                    else:
-                        print("Not enough usdc!")
-                    
-                print(f"Buying focus:${buy_amount}")
-                qty = safe_div(buy_amount,deso_best_ask)
-                price = focus_best_ask * (Decimal("1")+max_slippage)
-                if place_limit_order(user_public_key,"BID", focus_pubkey, deso_pubkey,price, qty ,balancer_active):
-                        focus_balance_usd = focus_balance_usd + buy_amount
-                        deso_balance_usd = deso_balance_usd - buy_amount
-        if print_debug:print("Deso..")        
-        if deso_balance_usd>deso_target_balance*(Decimal("1")+deviation/Decimal("100")):
-            sell_amount=deso_balance_usd-deso_target_balance
-            if sell_amount>=min_transaction:
-                print(f"Selling deso:${sell_amount}")
-                price = deso_best_bid * (Decimal("1")-max_slippage)
-                if place_limit_order(user_public_key,"ASK", deso_pubkey, usdc_pubkey, price, sell_amount,balancer_active):
-                        deso_balance_usd = deso_balance_usd - sell_amount
-                        usdc_coins = usdc_coins + sell_amount
-
-        if deso_balance_usd<deso_target_balance*(Decimal("1")-deviation/Decimal("100")) and deso_balance_usd<hard_cap:
-            buy_amount = min(deso_target_balance,hard_cap)-deso_balance_usd 
-            if buy_amount >= min_transaction:
-                print(f"Buying deso:${buy_amount}")
-                price = deso_best_ask * (Decimal("1")+max_slippage)
-                if place_limit_order(user_public_key,"BID", deso_pubkey, usdc_pubkey, price, buy_amount,balancer_active):
-                        deso_balance_usd = deso_balance_usd + buy_amount
-                        usdc_coins = usdc_coins - buy_amount
-        
+            
         if update_interval>=10:
             print(f"\nsleep {update_interval} seconds")
             time.sleep(update_interval)
