@@ -10,7 +10,7 @@ getcontext().prec=28
 ZERO = Decimal("0")
 
 __author__ = "NimalYas"
-__version__ = "1.0.5"
+__version__ = "1.0.6"
 __last_modified__ = "2026-08-02"
 
 # Configure logging
@@ -64,28 +64,35 @@ print(f"{'Trigger Deviation':<20}: {deviation} %")
 print(f"{'Hard Limit Per Asset':<20}: $ {hard_cap}")
 print(f"{'Minimum Transaction':<20}: $ {min_transaction}")
 
-tokens_based_on_focus = [
-    {
-        "name":token["name"],
-        "pubkey":token["pubkey"],
-        "exchange_rate":ZERO,
-        "tokens_qty":ZERO,
-        "balance_usd":ZERO,
-        "target_percentage":Decimal(str(token["target_percentage"])),
-        "current_perc":ZERO,
-        "best_bid":ZERO,
-        "best_ask":ZERO
-    } for token in tokens_data
-]
+tokens_based_on_focus=[]
+
+for token in tokens_data:
+    assert isinstance(token.get("pubkey"),str),f"Invalid pubkey:{token}"
+    assert isinstance(token.get("target_percentage"),(int,float,str)),f"Invalid target_percentage:{token}"
+    perc = Decimal(str(token["target_percentage"]))
+    assert Decimal("0") < perc < Decimal("100"),f"Invalid percentage range: {token}"
+    tokens_based_on_focus.append(
+        {
+            "name":token["name"],
+            "pubkey":token["pubkey"],
+            "exchange_rate":ZERO,
+            "tokens_qty":ZERO,
+            "balance_usd":ZERO,
+            "target_percentage":Decimal(str(token["target_percentage"])),
+            "current_perc":ZERO,
+            "best_bid":ZERO,
+            "best_ask":ZERO
+        } 
+    )
 
 total_perc=deso_perc+focus_perc+openfund_perc
 for token in tokens_based_on_focus:
      total_perc=total_perc+token["target_percentage"]
-if total_perc<Decimal("100"):
-    perc_status="OK"
-else:
+     
+if total_perc>Decimal("100") or total_perc<Decimal("0"):
     perc_status="Sum of percentages should be less than 100"
-print(f"{'Percentage Check':<20}: {perc_status}")
+    raise ValueError(perc_status)
+
 usdc_perc = Decimal('100')-total_perc
 print(f"{'USDC %':<20}: {usdc_perc:.1f} %")
 deso = DeSoDexClient(is_testnet=False,seed_phrase_or_hex=deso_seed,node_url=node)
@@ -197,6 +204,8 @@ while True:
         
         if print_debug:print("Updating DESO/USDC order book...")
         data=deso.get_limit_orders(deso_pubkey,usdc_pubkey)
+        if not data or "Orders" not in data:
+            raise RuntimeError("Invalid DESO/USDC orderbook response")
         quote_currency = usdc_pubkey
         base_currency_selected = deso_pubkey
         if print_debug:print("Calculating DESO/USDC market price")
@@ -205,6 +214,8 @@ while True:
         #get Order book for FOCUS/DESO
         if print_debug:print("Updating FOCUS/DESO order book...")
         data=deso.get_limit_orders(focus_pubkey,deso_pubkey)
+        if not data or "Orders" not in data:
+            raise RuntimeError("Invalid FOCUS/DESO orderbook response")
         quote_currency = deso_pubkey
         base_currency_selected = focus_pubkey
         if print_debug:print("Calculating FOCUS/DESO market price")
@@ -214,6 +225,8 @@ while True:
         #get Order book for OPENFUND/DESO
         if print_debug:print("Updating OPENFUND/DESO order book...")
         data=deso.get_limit_orders(openfund_pubkey,deso_pubkey)
+        if not data or "Orders" not in data:
+            raise RuntimeError("Invalid OPENFUND/DESO orderbook response")
         quote_currency = deso_pubkey
         base_currency_selected = openfund_pubkey
         if print_debug:print("Calculating OPENFUND/DESO market price")
@@ -222,6 +235,8 @@ while True:
         for token in tokens_based_on_focus:
             if print_debug:print(f"Updating {token['name']}/FOCUS order book...")
             data=deso.get_limit_orders(token["pubkey"],focus_pubkey)
+            if not data or "Orders" not in data:
+                raise RuntimeError(f"Invalid {token['name']}/FOCUS orderbook response")
             quote_currency = focus_pubkey
             base_currency_selected = token["pubkey"]
             if print_debug:print(f"Calculating {token['name']}/FOCUS market price")
@@ -430,7 +445,10 @@ while True:
         else:
             print(f"\nsleep 10 seconds")
             time.sleep(10)
+            
     except Exception as e:
+        print(f"Error! {e}")
+        print(f"Sleeping for 60 seconds")
         logging.error(e)
         time.sleep(60)
     
