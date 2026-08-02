@@ -128,21 +128,23 @@ python balancer.py
 ```
 The application will continue running until stopped, checking your portfolio every `UPDATE_INTERVAL` seconds.
 
-## How It Works
+---
 
-During each update cycle the balancer performs the following steps:
+# How It Works
+
+During each cycle the balancer:
 
 1. Connects to the configured DeSo node.
-2. Retrieves wallet balances.
-3. Fetches current market prices.
+2. Fetches current market prices.
+3. Retrieves your wallet balances.
 4. Calculates the total portfolio value.
-5. Determines the current allocation of every supported asset.
-6. Calculates the desired allocation using your configured percentages.
-7. Applies the configured deviation threshold to avoid unnecessary trades.
-8. Checks the hard cap before purchasing additional assets.
-9. Calculates the required buy and sell amounts.
-10. Rebalances the portfolio if automatic trading is enabled.
-11. Waits until the next update interval and repeats.
+5. Ignores allocation differences smaller than `DEVIATION`.
+6. Verifies `HARD_CAP`, `MAX_SLIPPAGE`, and `MIN_TRANSACTION` limits.
+7. Calculates the required buy and sell orders.
+8. Executes trades if `BALANCER_ACTIVE=True`.
+9. Waits until the next update cycle.
+
+---
 
 ## Project Structure
 
