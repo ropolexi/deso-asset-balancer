@@ -178,7 +178,7 @@ def place_limit_order(user_public_key,operation, base_currency, quote_currency, 
             print(f"Dry Run - operation:{operation}, price:{price}, quantity:{quantity} {unit}")
         return True
     except Exception as e:
-        print(f"Error placing order {e}")
+        print(f"Error placing order!")
         logging.error(f"Order placing failed! - {e}")
         return False
 
