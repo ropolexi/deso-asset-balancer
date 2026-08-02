@@ -194,11 +194,7 @@ Before enabling automatic trading:
 * Keep your seed phrase secure.
 * Never commit your `.env` file to version control.
   
-## Contributing
-
-Contributions are welcome. Please open an issue or submit a pull request with improvements or bug fixes.
-
-# Disclaimer
+## Disclaimer
 
 This software is provided **"as is"**, without any warranties or guarantees of any kind, whether express or implied.
 
@@ -212,8 +208,3 @@ By using this software, you acknowledge that:
 * You use this software entirely at your own risk.
 
 **The author(s) and contributors accept no liability for any financial losses, loss of funds, damages, or other consequences arising from the use or misuse of this software.** By using this project, you agree that all responsibility for its use rests solely with you.
-
-
-## License
-
-This project is licensed under the MIT License.
