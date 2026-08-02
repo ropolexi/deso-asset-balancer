@@ -9,7 +9,7 @@ from decimal import Decimal,getcontext,ROUND_DOWN
 getcontext().prec=28
 
 __author__ = "NimalYas"
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 __last_modified__ = "2026-08-02"
 
 # Configure logging
